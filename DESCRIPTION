@@ -1,0 +1,39 @@
+Package: irtident
+Type: Package
+Title: Practical Identification Diagnostics for Item Response Models Fitted with 'mirt'
+Version: 0.1.0
+Authors@R:
+    person("First", "Last", email = "yonggi1124@gmail.com",
+           role = c("aut", "cre"))
+Description: Diagnoses which item parameters of a unidimensional, single-group
+    item response model fitted with 'mirt' are weakly identified by the data,
+    and why. Four complementary diagnostics are provided: (1) item-level local
+    diagnostics that split each parameter's sampling variance into an
+    intrinsic part and inflation caused by confounding with parameters of the
+    same item or of other items; (2) profile likelihood intervals with
+    flatness indicators, following the practical identifiability approach of
+    Raue et al. (2009) <doi:10.1093/bioinformatics/btp358>; (3) multi-start
+    estimation with clustering of the solutions, which separates
+    equivalent-fit modes from inferior local optima; and (4) a simulation
+    that estimates the sample size needed to recover a given parameter.
+    Models are estimated with 'mirt' (Chalmers, 2012) <doi:10.18637/jss.v048.i06>.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1.0)
+Imports:
+    graphics,
+    mirt (>= 1.40),
+    stats,
+    utils
+Suggests:
+    future.apply,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+URL: https://github.com/USERNAME/irtident
+BugReports: https://github.com/USERNAME/irtident/issues
