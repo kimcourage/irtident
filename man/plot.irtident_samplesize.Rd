@@ -16,6 +16,5 @@
 }
 \description{
 Repeated-estimate SD and mirt SE against sample size for each parameter.
-Both curves use the same replications and reporting scale. Inspect
-\code{n_used}, \code{conv} and \code{se_failure} in the printed summary alongside the plot.
+Both curves use the same replications and reporting scale.
 }

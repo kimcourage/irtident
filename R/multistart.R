@@ -1,15 +1,13 @@
 #' Multi-start estimation with clustering of the solutions
 #'
 #' Refits the model from `n_starts` random starting values and groups the
-#' solutions that agree (up to `tol_par` in every parameter). Comparing the
-#' clusters helps assess sensitivity to starting values:
+#' solutions that agree (up to `tol_par` in every parameter). Each cluster is
+#' classified as
 #'
-#' * **equivalent-fit modes**: several clusters reach (almost) the same
-#'   log-likelihood with different parameter values. This can indicate weak
-#'   identification or distinct modes; it does not by itself establish a
-#'   continuous ridge.
-#' * **inferior local optima**: clusters with clearly lower log-likelihood.
-#'   Check convergence before interpreting them as local optima.
+#' * **equivalent fit**: its best log-likelihood is within `tol_ll` of the
+#'   overall best. Several such clusters mean that different parameter values
+#'   fit the data equally well.
+#' * **inferior optimum**: its best log-likelihood is lower.
 #'
 #' The reflection \eqn{\theta \to -\theta} (all slopes change sign) gives an
 #' identical likelihood in a unidimensional model and is removed before
@@ -20,28 +18,25 @@
 #' @param tol_par Two solutions are put in the same cluster when no
 #'   parameter (reporting scale) differs by more than this.
 #' @param tol_ll Clusters whose best log-likelihood is within `tol_ll` of the
-#'   overall best count as equivalent-fit modes. The default log-likelihood
-#'   tolerance of 0.1 corresponds to a deviance difference of 0.2; it is a
-#'   numerical comparison threshold, not a hypothesis test.
+#'   overall best count as equivalent fit.
 #' @param unstable_cut Named vector of spreads (reporting scale, by parameter
 #'   type; graded intercepts use `d`) above which a parameter is flagged as
-#'   unstable across equivalent-fit modes. Smaller spreads usually reflect EM
-#'   stopping at slightly different points rather than a real ridge.
+#'   unstable across equivalent-fit clusters.
 #' @param parallel If `TRUE`, starts are run in parallel with `future.apply`.
 #' @param ... Further arguments passed to [mirt::mirt()] for every refit.
 #'
 #' @return An object of class `irtident_multistart`, a list with
 #'   \describe{
 #'     \item{solutions}{one row per start: log-likelihood, convergence and
-#'       cluster. Solutions that hit the iteration limit are kept for
-#'       comparison, but should not be treated as confirmed optima;}
+#'       cluster. Solutions that reached the iteration limit are included and
+#'       marked in `converged`;}
 #'     \item{estimates}{matrix of estimates, starts in rows (reporting
 #'       scale);}
 #'     \item{clusters}{one row per cluster with its size, best
 #'       log-likelihood, gap to the overall best and type;}
 #'     \item{params}{one row per parameter with its spread across the
-#'       equivalent-fit modes (`spread_top`) and across all converged
-#'       solutions (`spread_all`), and an `unstable` flag;}
+#'       equivalent-fit clusters (`spread_top`) and across all solutions
+#'       (`spread_all`), and an `unstable` flag;}
 #'     \item{original_is_best}{whether the original fit is among the best
 #'       solutions (in an equivalent-fit cluster).}
 #'   }

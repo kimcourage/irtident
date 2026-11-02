@@ -13,16 +13,15 @@
 #'   `u = 1`, `a1 = 0`) without crossing the cutoff;
 #' * `"open"`: the grid ends without crossing the cutoff.
 #'
+#' For `g` and `u`, whose bounds lie on the edge of the parameter space, the
+#' deviance at the bound is compared with the cutoff of the 50:50 mixture of
+#' \eqn{\chi^2_0} and \eqn{\chi^2_1} (Self & Liang, 1987); 2.71 at the 95%
+#' level. If it exceeds this cutoff, the side is `"closed"` at the bound.
+#'
 #' The resulting `status` is `"identified"` (both sides closed), `"bounded"`
 #' (one side at a natural bound, the other closed: the data rule out large
 #' values but not the bound itself), `"partial"` (one side open) or `"flat"`
-#' (neither side closed: the data barely distinguish values across the
-#' whole grid).
-#'
-#' These labels describe the evaluated grid. An open side does not establish
-#' that the interval is unbounded. The chi-squared cutoff is an asymptotic
-#' approximation; nominal coverage is not assured at parameter boundaries
-#' or under weak identification.
+#' (neither side closed).
 #'
 #' Deviances are measured from the highest log-likelihood seen (the original
 #' fit or any profile point). If a profile reaches a log-likelihood clearly
@@ -42,23 +41,26 @@
 #' @param local An `irtident_local` object from [id_local()], reused to pick
 #'   flagged parameters, size the grids and compute Wald intervals.
 #' @param stop_dev Tracing in one direction stops once the deviance exceeds
-#'   `stop_dev` times the cutoff; the remaining grid points carry no
-#'   information about the interval and are left as `NA`.
+#'   `stop_dev` times the cutoff; the remaining grid points are left as `NA`.
 #' @param tol_ll Log-likelihood gain above which a profile is reported as
 #'   having found a better optimum than the original fit (`improved`).
-#'   Smaller gains are treated as EM stopping slightly early on a flat ridge.
 #' @param parallel If `TRUE`, parameters are profiled in parallel with
 #'   `future.apply` under the current `future::plan()`.
 #' @param ... Further arguments passed to [mirt::mirt()] for every refit
 #'   (e.g. `technical = list(NCYCLES = 1000)`).
 #'
 #' @return An object of class `irtident_profile`: a list with `summary` (one
-#'   row per profiled parameter), `curves` (the profile for each parameter)
-#'   and the `cutoff` used.
+#'   row per profiled parameter), `curves` (the profile for each parameter),
+#'   and the cutoffs used (`cutoff`, `cutoff_bound`).
 #' @references Raue, A., Kreutz, C., Maiwald, T., Bachmann, J., Schilling, M.,
 #'   Klingmuller, U., & Timmer, J. (2009). Structural and practical
 #'   identifiability analysis of partially observed dynamical models by
 #'   exploiting the profile likelihood. *Bioinformatics, 25*(15), 1923-1929.
+#'
+#'   Self, S. G., & Liang, K.-Y. (1987). Asymptotic properties of maximum
+#'   likelihood estimators and likelihood ratio tests under nonstandard
+#'   conditions. *Journal of the American Statistical Association, 82*(398),
+#'   605-610.
 #' @seealso [id_local()], [plot.irtident_profile()]
 #' @examples
 #' library(mirt)
@@ -77,6 +79,7 @@ id_profile <- function(mod, params = NULL, n_grid = 11, level = 0.95,
   flagged <- local$params$param[local$params$status %in% c("weak", "boundary")]
   params <- .resolve_params(params, pt, default = flagged)
   cutoff <- stats::qchisq(level, df = 1)
+  cutoff_bound <- .boundary_cutoff(level)
   ll_hat <- mirt::extract.mirt(mod, "logLik")
 
   if (!length(params)) {
@@ -104,17 +107,22 @@ id_profile <- function(mod, params = NULL, n_grid = 11, level = 0.95,
     curves[[p]]$deviance <<- 2 * (ll_ref - curves[[p]]$loglik)
     s <- .summarise_profile(pt[pt$param == p, ],
                             local$params[local$params$param == p, ],
-                            curves[[p]], cutoff, level)
+                            curves[[p]], cutoff, level, cutoff_bound)
     s$improved <- max(curves[[p]]$loglik, na.rm = TRUE) - ll_hat > tol_ll
     s
   })
   summary <- do.call(rbind, rows)
   if (is.null(summary)) summary <- .empty_profile_summary()
   structure(list(summary = summary, curves = curves, cutoff = cutoff,
+                 cutoff_bound = cutoff_bound,
                  level = level, loglik = ll_hat, loglik_ref = ll_ref,
                  improvement = ll_ref - ll_hat, tol_ll = tol_ll),
             class = "irtident_profile")
 }
+
+# Cutoff for a parameter value on the edge of the parameter space: the
+# 50:50 mixture of chi-squared(0) and chi-squared(1) (Self & Liang, 1987).
+.boundary_cutoff <- function(level) stats::qchisq(1 - 2 * (1 - level), df = 1)
 
 .natural_bounds <- function(row) {
   lo <- row$lbound
@@ -208,24 +216,34 @@ id_profile <- function(mod, params = NULL, n_grid = 11, level = 0.95,
   x[hit - 1] + (cutoff - d[hit - 1]) * (x[hit] - x[hit - 1]) / (d[hit] - d[hit - 1])
 }
 
-.summarise_profile <- function(row, lrow, curve, cutoff, level) {
+.summarise_profile <- function(row, lrow, curve, cutoff, level,
+                               cutoff_bound = .boundary_cutoff(level)) {
   v0 <- row$value
   bnd <- .natural_bounds(row)
+  # bounds that lie on the edge of mirt's parameter space (g, u, variances)
+  edge <- c(is.finite(row$lbound), is.finite(row$ubound))
   up <- curve[curve$value >= v0, ]
   dn <- curve[curve$value <= v0, ]
   dn <- dn[order(-dn$value), ]
-  upper <- .crossing(up$value, up$deviance, cutoff)
-  lower <- .crossing(dn$value, dn$deviance, cutoff)
-  side_type <- function(cross, edge, bound) {
-    if (!is.na(cross)) return("closed")
-    if (is.finite(bound) && abs(edge - bound) < 1e-8) return("bound")
-    "open"
-  }
   reached <- range(curve$value[!is.na(curve$loglik)])
-  lower_type <- side_type(lower, reached[1], bnd[1])
-  upper_type <- side_type(upper, reached[2], bnd[2])
-  if (is.na(lower)) lower <- reached[1]
-  if (is.na(upper)) upper <- reached[2]
+  side <- function(pts, end, bound, on_edge) {
+    cross <- .crossing(pts$value, pts$deviance, cutoff)
+    if (!is.na(cross)) return(list(type = "closed", limit = cross))
+    if (!is.finite(bound) || abs(end - bound) >= 1e-8) {
+      return(list(type = "open", limit = end))
+    }
+    d_bound <- pts$deviance[abs(pts$value - bound) < 1e-8 & !is.na(pts$deviance)]
+    if (on_edge && length(d_bound) && d_bound[1] >= cutoff_bound) {
+      return(list(type = "closed", limit = bound))
+    }
+    list(type = "bound", limit = bound)
+  }
+  lo <- side(dn, reached[1], bnd[1], edge[1])
+  hi <- side(up, reached[2], bnd[2], edge[2])
+  lower <- lo$limit
+  upper <- hi$limit
+  lower_type <- lo$type
+  upper_type <- hi$type
 
   z <- stats::qnorm(1 - (1 - level) / 2)
   se <- if (nrow(lrow)) lrow$se else NA_real_

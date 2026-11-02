@@ -19,9 +19,7 @@ library(irtident)
 
 ## A 3PL example
 
-Convergence and a positive-definite information matrix do not establish
-precise estimation of every parameter. mirt provides the information-matrix
-condition number as one summary of numerical conditioning:
+mirt summarises the conditioning of the whole model with the condition number of the information matrix:
 
 ```{r fit}
 dat <- expand.table(LSAT7)
@@ -30,8 +28,7 @@ extract.mirt(fit, "secondordertest")
 extract.mirt(fit, "condnum")
 ```
 
-A large condition number motivates closer inspection, although its magnitude
-depends on the parameter scale. irtident adds diagnostics by item and parameter.
+irtident breaks this down by item and parameter.
 
 ## Combined diagnostics
 
@@ -41,10 +38,7 @@ dx <- id_diagnose(fit, n_starts = 8)
 dx
 ```
 
-Four of the five items have a guessing parameter at its lower bound: for
-them the data are consistent with a 2PL item. Item 2's guessing parameter
-is estimated at about 0.3, but it is associated
-with the intercept, and the data cannot rule out `g = 0`.
+Four of the five items have a guessing parameter at its lower bound: for them the data are consistent with a 2PL item. Item 2's guessing parameter is estimated at about 0.3, but it is associated with the intercept, and the data cannot rule out `g = 0`.
 
 The diagnosis combines three pieces of evidence, described below.
 
@@ -54,12 +48,9 @@ The diagnosis combines three pieces of evidence, described below.
 
 $$SE_j^2 = SE_{cond,j}^2 \times VIF^{within}_j \times VIF^{between}_j$$
 
-* $SE_{cond,j}$: the standard error if every other parameter were known
-  (how much information the data carry about this parameter alone);
-* $VIF^{within}_j$: inflation from not knowing the other parameters *of the
-  same item*;
-* $VIF^{between}_j$: inflation from not knowing the parameters of *other
-  items* and of the latent distribution.
+* $SE_{cond,j}$: the standard error if every other parameter were known (how much information the data carry about this parameter alone);
+* $VIF^{within}_j$: inflation from not knowing the other parameters *of the same item*;
+* $VIF^{between}_j$: inflation from not knowing the parameters of *other items* and of the latent distribution.
 
 ```{r local}
 loc <- dx$local
@@ -68,22 +59,19 @@ p <- loc$params[loc$params$item == "Item.2",
 p
 ```
 
-For item 2, the within-item variance inflation factors for `g` and `d` are
-about 20 in the reference run. This corresponds to a standard-error multiplier
-of about $\sqrt{20}$, not 20. The local standard errors for `g` are on the
-logit scale. The correlation-matrix diagnostic also reports parameter
-combinations associated with small eigenvalues:
+For item 2, the within-item variance inflation factors of `g` and `d` are about 20: their standard errors are about $\sqrt{20} \approx 4.5$ times what they would be if the other parameters of item 2 were known. Standard errors of `g` are on the logit scale.
+
+The eigenvectors of the scaled information matrix with small eigenvalues give the directions along which the log-likelihood is nearly flat:
 
 ```{r directions}
 loc$directions
 ```
 
+`g` and `d` load with opposite signs: raising the guessing parameter while lowering the intercept leaves the fit almost unchanged.
+
 ### Guessing parameters in easy items
 
-Consider a 3PL test with `a = 1.5` and `g = 0.2` for every item and a range
-of difficulties. The following code evaluates expected (Fisher) information
-at the generating values. The information depends on those values and N;
-the simulated data provide the mirt object used for the calculation.
+Consider a 3PL test with `a = 1.5` and `g = 0.2` for every item and a range of difficulties. The following code evaluates expected (Fisher) information at the generating values. The information depends on those values and N; the simulated data provide the mirt object used for the calculation.
 
 ```{r sim}
 set.seed(2026)
@@ -109,17 +97,11 @@ plot(b, g_rows$se, log = "y", pch = 19, type = "b",
      main = "Precision of guessing estimates by item difficulty (N = 3000)")
 ```
 
-The lower asymptote is most evident at low ability relative to item
-difficulty. For easy items, few respondents occupy that region. In this
-example, easy items have less conditional information about `g` and greater
-within-item confounding with the intercept.
+The lower asymptote is most evident at low ability relative to item difficulty. For easy items, few respondents occupy that region. In this example, easy items have less conditional information about `g` and greater within-item confounding with the intercept.
 
 ## 2. Profile likelihood: is the interval closed?
 
-`id_profile()` fixes a parameter at a grid of values, re-estimates
-everything else, and records the deviance. A parameter is practically
-identified when its profile likelihood interval is closed on both sides
-(Raue et al., 2009).
+`id_profile()` fixes a parameter at a grid of values, re-estimates everything else, and records the deviance. A parameter is practically identified when its profile likelihood interval is closed on both sides (Raue et al., 2009).
 
 ```{r profile}
 dx$profile
@@ -129,20 +111,17 @@ dx$profile
 plot(dx, params = c("Item.1:g", "Item.2:g", "Item.4:g", "Item.2:a1"))
 ```
 
-For `Item.2:g` the Wald interval excludes 0, but the profile interval
-reaches it. The difference indicates that a local quadratic approximation
-does not describe the full profile well. For `Item.1:g`, the profile does
-not cross the cutoff over the evaluated range from 0 to 0.5. These intervals
-use an asymptotic chi-squared cutoff; coverage can differ from the nominal
-level at boundaries and under weak identification.
+For `Item.2:g` the Wald interval excludes 0, but the profile interval reaches it: the quadratic approximation behind the Wald interval does not describe this profile well. For `Item.1:g`, the profile stays below the cutoff from 0 to 0.5.
+
+At a bound of the parameter space (`g = 0`, `u = 1`), the deviance is compared with the cutoff of the 50:50 mixture of $\chi^2_0$ and $\chi^2_1$ (Self & Liang, 1987):
+
+```{r cutoffs}
+c(interior = dx$profile$cutoff, bound = dx$profile$cutoff_bound)
+```
 
 ## 3. Multiple starting values
 
-`id_multistart()` refits from random starting values and clusters the
-solutions. Clusters with the same log-likelihood but different parameter
-values can indicate weak identification or distinct modes. Clusters with
-lower log-likelihood suggest optimisation problems. Convergence needs to
-be checked before treating either group as optima. For example:
+`id_multistart()` refits from random starting values and clusters the solutions. Clusters that reach the same log-likelihood with different parameter values are reported as equivalent fit; clusters with a lower log-likelihood as inferior optima. For example:
 
 ```{r multistart}
 fit4 <- mirt(dat, 1, itemtype = "4PL", verbose = FALSE)
@@ -151,14 +130,9 @@ ms <- id_multistart(fit4, n_starts = 6)
 ms
 ```
 
-Starts that hit the iteration limit remain in the comparison. Slow convergence
-can accompany weak identification, but is not sufficient evidence of it.
-
 ## 4. Parameter precision across sample sizes
 
-`id_samplesize()` simulates from the fitted model at several sample sizes,
-refits, and compares repeated-estimate SD with the SEs reported by mirt. These additional
-fits can be expensive, so the simulation is separate from `id_diagnose()`:
+`id_samplesize()` simulates from the fitted model at several sample sizes, refits, and compares repeated-estimate SD with the SEs reported by mirt. It is run separately from `id_diagnose()`:
 
 ```{r samplesize, eval = FALSE}
 set.seed(1)
@@ -181,45 +155,22 @@ For each parameter and N, the summary reports:
 | `conv` | Converged fits divided by all attempted fits |
 | `se_failure` | Fraction of converged successful fits without a usable estimate/SE pair |
 
-The mean, SD and mirt SE use the same replications: converged fits with a
-finite estimate and a finite, positive SE for that parameter. An SE
-calculation failure does not discard the raw estimate, but excludes that
-replication from these paired summaries. The SD is unavailable with fewer
-than two usable replications; `se_failure` is unavailable if none converged.
-Raw estimates and reporting-scale SEs are retained in `ss$estimates` and
-`ss$standard_errors` with matching N and replication numbers.
+The mean, SD and mirt SE use the same replications: converged fits with a finite estimate and a finite, positive SE for that parameter. Raw estimates and reporting-scale SEs are in `ss$estimates` and `ss$standard_errors`.
 
-`plot(ss)` compares SD and mirt SE across N. Their decline shows how much
-precision a larger sample may provide under the generating model. Differences
-between the two curves suggest that mirt's SEs and the simulated variability
-are not in close agreement. Inspect `n_used`, convergence and SE failure
-alongside the curves: excluding difficult fits can make precision look better.
-The 20 replications in this example illustrate the procedure and may leave
-substantial simulation variability.
+`plot(ss)` draws the SD and mirt SE against N.
 
-For `g` and `u`, both curves use the probability scale. The logit SE from
-mirt is converted with the delta method, `p * (1 - p) * SE_logit`. At exact
-probability boundaries the SE is marked unavailable; near a boundary this
-approximation can still be unreliable. SEs are evaluated at the converged
-estimates without further optimisation, using the same fitting arguments.
-Use `SE.type` to choose a different mirt SE method.
-
-The function does not calculate bias or RMSE, set a precision cutoff, or
-automatically choose a sample size. The `truth` argument retains its name
-for compatibility and specifies the generating model; it defaults to `fit`.
-These results describe that simulation scenario, not known population values.
+For `g` and `u`, both use the probability scale; the logit SE from mirt is converted with the delta method, `p * (1 - p) * SE_logit`. SEs are evaluated at the converged estimates with the same fitting arguments; `SE.type` selects the mirt SE method. The `truth` argument sets the generating model and defaults to `fit`.
 
 ## Running in parallel
 
-All diagnostics that refit the model accept `parallel = TRUE` and then use
-`future.apply` with whatever `future::plan()` is active:
+All diagnostics that refit the model accept `parallel = TRUE` and then use `future.apply` with whatever `future::plan()` is active:
 
 ```{r parallel, eval = FALSE}
 future::plan(future::multisession, workers = 4)
 dx <- id_diagnose(fit, parallel = TRUE)
 ```
 
-## Scope of this version
+## Supported models
 
 * Unidimensional, single-group models from `mirt::mirt()`.
 * Itemtypes `Rasch`, `2PL`, `3PL`, `3PLu`, `4PL` and `graded`.
@@ -227,11 +178,8 @@ dx <- id_diagnose(fit, parallel = TRUE)
 
 ## References
 
-Chalmers, R. P. (2012). mirt: A multidimensional item response theory
-package for the R environment. *Journal of Statistical Software, 48*(6),
-1-29.
+Chalmers, R. P. (2012). mirt: A multidimensional item response theory package for the R environment. *Journal of Statistical Software, 48*(6), 1-29.
 
-Raue, A., Kreutz, C., Maiwald, T., Bachmann, J., Schilling, M.,
-Klingmuller, U., & Timmer, J. (2009). Structural and practical
-identifiability analysis of partially observed dynamical models by
-exploiting the profile likelihood. *Bioinformatics, 25*(15), 1923-1929.
+Raue, A., Kreutz, C., Maiwald, T., Bachmann, J., Schilling, M., Klingmuller, U., & Timmer, J. (2009). Structural and practical identifiability analysis of partially observed dynamical models by exploiting the profile likelihood. *Bioinformatics, 25*(15), 1923-1929.
+
+Self, S. G., & Liang, K.-Y. (1987). Asymptotic properties of maximum likelihood estimators and likelihood ratio tests under nonstandard conditions. *Journal of the American Statistical Association, 82*(398), 605-610.

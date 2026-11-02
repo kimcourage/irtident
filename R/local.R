@@ -14,14 +14,15 @@
 #' * \eqn{VIF^{between}_j} is the extra inflation caused by not knowing the
 #'   parameters of *other items* and of the latent distribution.
 #'
-#' A large total VIF indicates confounding in the local quadratic
-#' approximation; a large `se_cond` indicates little conditional information.
-#' Parameters sitting at a bound (e.g. `g` near
-#' 0) are flagged separately because the usual asymptotics do not apply.
+#' A large total VIF indicates confounding with other parameters; a large
+#' `se_cond` indicates little information about the parameter itself.
+#' Parameters at a bound (e.g. `g` near 0) are flagged as `boundary`.
 #'
-#' Near-null directions of the correlation matrix of the estimates are
-#' reported in `directions`: each lists the parameters that move together
-#' along a weakly identified combination.
+#' `directions` lists the eigenvectors of the information matrix, scaled to
+#' unit diagonal, whose eigenvalues are below `eig_cut`. Each eigenvector is
+#' a combination of parameters along which the log-likelihood is nearly
+#' flat; loadings with opposite signs move in opposite directions.
+#' `condnum` is the condition number of the same matrix.
 #'
 #' Standard errors and VIFs are on mirt's internal scale, where `g` and `u`
 #' are logits. Point estimates are reported on the usual scale.
@@ -36,18 +37,16 @@
 #'   flagged as having little information.
 #' @param boundary Distance from a bound (e.g. `g` < `boundary`) at which a
 #'   parameter is flagged as being at the boundary.
-#' @param eig_cut Eigenvalues of the correlation matrix of the estimates below
-#'   this value define weakly identified directions. Parameters at a bound
-#'   are left out of this eigen-analysis.
+#' @param eig_cut Eigenvalues of the scaled information matrix below this
+#'   value define weakly identified directions. Parameters at a bound are
+#'   left out of this eigen-analysis.
 #' @param SE.type `NULL` (default) uses the covariance matrix stored in `mod`,
 #'   or mirt's default information matrix if there is none. Any value
 #'   accepted by the `SE.type` argument of [mirt::mirt()] recomputes it, e.g.
 #'   `"Fisher"` for the expected information. The expected information
-#'   depends only on the parameter values and N, so it can be used at the
-#'   design stage: set the parameters to planned values (`pars` with
-#'   `TOL = NaN`) and check identification before collecting data. It
-#'   enumerates all response patterns, so it is only feasible for short
-#'   tests.
+#'   depends only on the parameter values and N, so it can be evaluated at
+#'   planned parameter values (`pars` with `TOL = NaN`) before collecting
+#'   data.
 #'
 #' @return An object of class `irtident_local`, a list with
 #'   \describe{
@@ -55,10 +54,14 @@
 #'       `vif`, `vif_within`, `vif_between`, flags and a `status` of
 #'       `"ok"`, `"weak"` or `"boundary"`;}
 #'     \item{items}{one row per item, summarising the worst parameter;}
-#'     \item{directions}{weakly identified parameter combinations;}
+#'     \item{directions}{weakly identified parameter combinations, named by
+#'       eigenvalue;}
 #'     \item{cor}{correlation matrix of the estimates;}
 #'     \item{singular}{`TRUE` if the information matrix could not be
-#'       inverted. This may reflect weak identification or numerical problems.}
+#'       inverted;}
+#'     \item{condnum}{condition number of the scaled information matrix;}
+#'     \item{mirt_condnum}{condition number reported by mirt;}
+#'     \item{cuts}{thresholds used.}
 #'   }
 #' @seealso [id_profile()], [id_multistart()], [id_diagnose()]
 #' @examples
@@ -136,17 +139,20 @@ id_local <- function(mod, vif_cut = 10, se_cut = 1, boundary = 0.01,
   pt$status <- ifelse(at_bound, "boundary",
                       ifelse(confounded | low_info | imprecise, "weak", "ok"))
 
-  # weakly identified directions
+  # Weakly identified directions: small eigenvalues of the information matrix
+  # of the non-boundary parameters, scaled to unit diagonal.
   R <- stats::cov2cor(V)
   inner <- which(!at_bound)
   e <- if (length(inner)) {
-    eigen(R[inner, inner, drop = FALSE], symmetric = TRUE)
+    S <- stats::cov2cor(.sym_inv(R[inner, inner, drop = FALSE]))
+    eigen(S, symmetric = TRUE)
   } else {
     list(values = NA_real_, vectors = matrix(NA_real_, 0, 0))
   }
-  small <- which(e$values < eig_cut)
+  small <- rev(which(e$values < eig_cut))
   directions <- lapply(small, function(k) {
     v <- e$vectors[, k]
+    v <- v * sign(v[which.max(abs(v))])
     keep <- order(-abs(v))
     keep <- keep[abs(v[keep]) >= 0.25]
     data.frame(param = pt$param[inner][keep], loading = round(v[keep], 3),

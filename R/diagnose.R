@@ -12,10 +12,8 @@
 #' * `"not identified"`: neither side of the profile crosses the cutoff,
 #'   or equivalent-fit solutions differ beyond the specified tolerance.
 #'
-#' These are diagnostic labels, not proofs of structural identification.
 #' Each flagged parameter also gets a suggested follow-up check.
-#' [id_samplesize()] is not run here because it is much slower; call it on
-#' the parameters of interest afterwards.
+#' [id_samplesize()] is run separately.
 #'
 #' @param mod A unidimensional single-group model fitted with [mirt::mirt()].
 #' @param profile,multistart Whether to run the profile and multi-start

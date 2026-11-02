@@ -23,14 +23,11 @@ id_multistart(
 parameter (reporting scale) differs by more than this.}
 
 \item{tol_ll}{Clusters whose best log-likelihood is within \code{tol_ll} of the
-overall best count as equivalent-fit modes. The default log-likelihood
-tolerance of 0.1 corresponds to a deviance difference of 0.2; it is a
-numerical comparison threshold, not a hypothesis test.}
+overall best count as equivalent fit.}
 
 \item{unstable_cut}{Named vector of spreads (reporting scale, by parameter
 type; graded intercepts use \code{d}) above which a parameter is flagged as
-unstable across equivalent-fit modes. Smaller spreads usually reflect EM
-stopping at slightly different points rather than a real ridge.}
+unstable across equivalent-fit clusters.}
 
 \item{parallel}{If \code{TRUE}, starts are run in parallel with \code{future.apply}.}
 
@@ -40,32 +37,30 @@ stopping at slightly different points rather than a real ridge.}
 An object of class \code{irtident_multistart}, a list with
 \describe{
 \item{solutions}{one row per start: log-likelihood, convergence and
-cluster. Solutions that hit the iteration limit are kept for
-comparison, but should not be treated as confirmed optima;}
+cluster. Solutions that reached the iteration limit are included and
+marked in \code{converged};}
 \item{estimates}{matrix of estimates, starts in rows (reporting
 scale);}
 \item{clusters}{one row per cluster with its size, best
 log-likelihood, gap to the overall best and type;}
 \item{params}{one row per parameter with its spread across the
-equivalent-fit modes (\code{spread_top}) and across all converged
-solutions (\code{spread_all}), and an \code{unstable} flag;}
+equivalent-fit clusters (\code{spread_top}) and across all solutions
+(\code{spread_all}), and an \code{unstable} flag;}
 \item{original_is_best}{whether the original fit is among the best
 solutions (in an equivalent-fit cluster).}
 }
 }
 \description{
 Refits the model from \code{n_starts} random starting values and groups the
-solutions that agree (up to \code{tol_par} in every parameter). Comparing the
-clusters helps assess sensitivity to starting values:
+solutions that agree (up to \code{tol_par} in every parameter). Each cluster is
+classified as
 }
 \details{
 \itemize{
-\item \strong{equivalent-fit modes}: several clusters reach (almost) the same
-log-likelihood with different parameter values. This can indicate weak
-identification or distinct modes; it does not by itself establish a
-continuous ridge.
-\item \strong{inferior local optima}: clusters with clearly lower log-likelihood.
-Check convergence before interpreting them as local optima.
+\item \strong{equivalent fit}: its best log-likelihood is within \code{tol_ll} of the
+overall best. Several such clusters mean that different parameter values
+fit the data equally well.
+\item \strong{inferior optimum}: its best log-likelihood is lower.
 }
 
 The reflection \eqn{\theta \to -\theta} (all slopes change sign) gives an

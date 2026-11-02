@@ -26,8 +26,7 @@ id_samplesize(
 \item{reps}{Replications per sample size.}
 
 \item{truth}{Generating model with the same items and itemtypes as \code{mod}.
-Defaults to \code{mod}. The argument name is retained for compatibility;
-these values specify a simulation scenario, not known population values.}
+Defaults to \code{mod}.}
 
 \item{local}{Optional \code{irtident_local} object to reuse flagged parameters.}
 
@@ -44,8 +43,7 @@ An \code{irtident_samplesize} object with \code{summary}, raw \code{estimates},
 \description{
 Generates data sets at several sample sizes from a fitted model, refits
 each data set and compares the variability of estimates with mirt's
-reported standard errors. Results describe the generating model and
-fitting settings used in the simulation.
+reported standard errors.
 }
 \details{
 For each parameter and N, \code{current} is the estimate in \code{mod}. \code{mean} and
@@ -58,19 +56,17 @@ than two usable replications.
 \code{success} and \code{conv} are proportions of all attempted replications.
 \code{se_failure} is the proportion of converged, successful fits without a
 usable estimate/SE pair, or \code{NA} if none converged. \code{p_bound} is the share
-of usable estimates within 0.01 of a parameter bound. Inspect these rates
-alongside the precision summaries: exclusions can affect the comparison.
+of usable estimates within 0.01 of a parameter bound.
 
 Estimates and SEs use the reporting scale. For \code{g} and \code{u}, mirt's logit
-SE is converted by the delta method: \code{p * (1 - p) * SE_logit}. Exact
-probability boundaries have no usable delta-method SE; near a boundary
-the approximation may be unreliable. No bias, RMSE, cutoff or required
-sample size is calculated.
+SE is converted by the delta method: \code{p * (1 - p) * SE_logit}; at an
+exact bound the SE is \code{NA}.
 
 Fits use \code{technical = list(NCYCLES = 2000)} unless supplied in \code{...}.
 SEs are evaluated at each converged fit without further optimisation,
 using the same fitting arguments and mirt's default SE method unless
-\code{SE.type} is supplied. Failed SE calculations do not discard the fit.
+\code{SE.type} is supplied. A fit whose SE calculation fails keeps its
+estimate in \code{estimates}.
 }
 \examples{
 \donttest{

@@ -11,10 +11,9 @@ print.irtident_local <- function(x, ...) {
   cat("<irtident_local>", nrow(x$params), "estimated parameters,",
       sum(x$items$item != "GROUP"), "items\n")
   if (x$singular) {
-    cat("The information matrix could not be inverted; check identification",
-        "and numerical stability.\n")
+    cat("The information matrix could not be inverted.\n")
   } else {
-    cat("Condition number of the correlation matrix of estimates:",
+    cat("Condition number of the scaled information matrix:",
         format(signif(x$condnum, 3)), "\n")
   }
   cat("\nItems:\n")
@@ -87,9 +86,6 @@ print.irtident_samplesize <- function(x, ...) {
   s <- x$summary[, c("param", "N", "current", "mean", "sd", "mirt_se",
                      "n_used", "success", "conv", "se_failure")]
   print(.round_df(s, 3), row.names = FALSE)
-  cat("\nmean, sd and mirt_se use the same n_used converged fits with usable SEs.\n",
-      "mirt_se = sqrt(mean(SE^2)); se_failure is conditional on convergence.\n",
-      "Estimates and SEs are on the reporting scale.\n", sep = "")
   invisible(x)
 }
 
@@ -214,8 +210,7 @@ plot.irtident_multistart <- function(x, ...) {
 #' Plot sample-size simulation results
 #'
 #' Repeated-estimate SD and mirt SE against sample size for each parameter.
-#' Both curves use the same replications and reporting scale. Inspect
-#' `n_used`, `conv` and `se_failure` in the printed summary alongside the plot.
+#' Both curves use the same replications and reporting scale.
 #'
 #' @param x An `irtident_samplesize` object.
 #' @param ... Further graphical parameters passed to [graphics::plot()].

@@ -2,8 +2,7 @@
 #'
 #' Generates data sets at several sample sizes from a fitted model, refits
 #' each data set and compares the variability of estimates with mirt's
-#' reported standard errors. Results describe the generating model and
-#' fitting settings used in the simulation.
+#' reported standard errors.
 #'
 #' For each parameter and N, `current` is the estimate in `mod`. `mean` and
 #' `sd` summarise the repeated estimates; `mirt_se` is
@@ -15,19 +14,17 @@
 #' `success` and `conv` are proportions of all attempted replications.
 #' `se_failure` is the proportion of converged, successful fits without a
 #' usable estimate/SE pair, or `NA` if none converged. `p_bound` is the share
-#' of usable estimates within 0.01 of a parameter bound. Inspect these rates
-#' alongside the precision summaries: exclusions can affect the comparison.
+#' of usable estimates within 0.01 of a parameter bound.
 #'
 #' Estimates and SEs use the reporting scale. For `g` and `u`, mirt's logit
-#' SE is converted by the delta method: `p * (1 - p) * SE_logit`. Exact
-#' probability boundaries have no usable delta-method SE; near a boundary
-#' the approximation may be unreliable. No bias, RMSE, cutoff or required
-#' sample size is calculated.
+#' SE is converted by the delta method: `p * (1 - p) * SE_logit`; at an
+#' exact bound the SE is `NA`.
 #'
 #' Fits use `technical = list(NCYCLES = 2000)` unless supplied in `...`.
 #' SEs are evaluated at each converged fit without further optimisation,
 #' using the same fitting arguments and mirt's default SE method unless
-#' `SE.type` is supplied. Failed SE calculations do not discard the fit.
+#' `SE.type` is supplied. A fit whose SE calculation fails keeps its
+#' estimate in `estimates`.
 #'
 #' @param mod A unidimensional single-group model fitted with [mirt::mirt()].
 #' @param params Parameters to study; `NULL` uses those flagged by
@@ -35,8 +32,7 @@
 #' @param N Sample sizes to simulate.
 #' @param reps Replications per sample size.
 #' @param truth Generating model with the same items and itemtypes as `mod`.
-#'   Defaults to `mod`. The argument name is retained for compatibility;
-#'   these values specify a simulation scenario, not known population values.
+#'   Defaults to `mod`.
 #' @param local Optional `irtident_local` object to reuse flagged parameters.
 #' @param parallel If `TRUE`, run replications with `future.apply`.
 #' @param ... Further arguments to [mirt::mirt()], including `SE.type`.

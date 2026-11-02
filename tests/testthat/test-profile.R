@@ -21,6 +21,34 @@ test_that("3PL item 2 guessing: profile interval reaches g = 0", {
   expect_gt(s$wald_lower, 0.05)
 })
 
+test_that("the bound of g is judged with the chi-squared mixture cutoff", {
+  expect_equal(irtident:::.boundary_cutoff(0.95), stats::qchisq(0.90, 1))
+  row <- data.frame(param = "I:g", item = "I", name = "g", value = 0.3,
+                    internal = stats::qlogis(0.3), lbound = 0, ubound = 1,
+                    stringsAsFactors = FALSE)
+  lrow <- data.frame(param = "I:g", se = 0.5)
+  curve_with <- function(d0) {
+    data.frame(value = c(0, 0.1, 0.2, 0.3, 0.4, 0.5),
+               loglik = 0, deviance = c(d0, 1, 0.5, 0, 2, 5),
+               point = "fitted", stringsAsFactors = FALSE)
+  }
+  summ <- function(d0) {
+    irtident:::.summarise_profile(row, lrow, curve_with(d0),
+                                  cutoff = stats::qchisq(0.95, 1), level = 0.95)
+  }
+  inside <- summ(2.0)   # below 2.71: g = 0 not rejected
+  between <- summ(3.0)  # between 2.71 and 3.84: g = 0 rejected at the bound
+  beyond <- summ(5.0)   # above 3.84: interior crossing
+  expect_identical(inside$lower_type, "bound")
+  expect_identical(inside$status, "bounded")
+  expect_identical(between$lower_type, "closed")
+  expect_equal(between$lower, 0)
+  expect_identical(between$status, "identified")
+  expect_identical(beyond$lower_type, "closed")
+  expect_gt(beyond$lower, 0)
+  expect_lt(beyond$lower, 0.1)
+})
+
 test_that("3PL boundary guessing parameter has a flat profile", {
   pr <- id_profile(get_fit("3PL"), params = "Item.5:g", n_grid = 7)
   expect_identical(pr$summary$status, "flat")

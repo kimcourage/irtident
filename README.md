@@ -4,13 +4,9 @@
 [![R-CMD-check](https://github.com/kimcourage/irtident/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kimcourage/irtident/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-Identification diagnostics for item response models fitted with
-[mirt](https://cran.r-project.org/package=mirt).
+Identification diagnostics for item response models fitted with [mirt](https://cran.r-project.org/package=mirt).
 
-Convergence does not establish that every item parameter is well determined.
-irtident examines parameter uncertainty using variance decomposition, profile
-likelihoods and repeated fits from different starting values. It also simulates
-parameter precision across sample sizes.
+irtident shows which item parameters of a fitted model are weakly determined by the data, using variance decomposition, profile likelihoods and repeated fits from different starting values. It also simulates parameter precision across sample sizes.
 
 ## Installation
 
@@ -70,10 +66,7 @@ Details: $params, $local, $profile, $multistart; plot(x) shows the profiles.
 
 <!-- dx-output:end -->
 
-In this example, four items have guessing estimates near zero. Item 2 has a
-positive guessing estimate, but its profile interval also reaches zero. A
-positive point estimate alone therefore does not establish a nonzero guessing
-parameter.
+Four items have guessing estimates at zero. Item 2's guessing estimate is 0.30, and its profile interval reaches zero.
 
 ```r
 plot(dx, params = c("Item.1:g", "Item.2:g", "Item.4:g", "Item.2:a1"))
@@ -81,8 +74,7 @@ plot(dx, params = c("Item.1:g", "Item.2:g", "Item.4:g", "Item.2:a1"))
 
 ![Profile deviances](man/figures/README-profile.png)
 
-The next simulation shows how the variability of item 2's guessing and slope
-estimates changes as N increases, using the fitted model to generate data.
+The variability of item 2's guessing and slope estimates as N increases, with the fitted model generating the data:
 
 ```r
 set.seed(1)
@@ -105,27 +97,17 @@ ss
  Item.2:a1 2000   1.928 2.118 1.147   1.748     18       1 0.95      0.053
  Item.2:a1 4000   1.928 1.712 0.509   0.662     16       1 1.00      0.200
  Item.2:a1 8000   1.928 1.807 0.333   0.469     17       1 0.90      0.056
-
-mean, sd and mirt_se use the same n_used converged fits with usable SEs.
-mirt_se = sqrt(mean(SE^2)); se_failure is conditional on convergence.
-Estimates and SEs are on the reporting scale.
 ```
 
 <!-- ss-output:end -->
 
-`current` is the estimate from the original fit. For each N, `mean` and `sd`
-describe the repeated estimates; `mirt_se` summarises the SEs reported by mirt
-as `sqrt(mean(SE^2))`. The plot compares the two measures of uncertainty.
+`current` is the estimate from the original fit. For each N, `mean` and `sd` describe the repeated estimates; `mirt_se` summarises the SEs reported by mirt as `sqrt(mean(SE^2))`.
 
 ```r
 plot(ss)
 ```
 
 ![Repeated-estimate SD and mirt SE by sample size](man/figures/README-samplesize.png)
-
-These figures were generated with R 4.5.2 and mirt 1.45.1. Twenty replications
-illustrate the procedure; the simulated summaries will vary between runs.
-Results also depend on the generating model and the fitting settings.
 
 ## Functions
 
@@ -141,50 +123,30 @@ The local variance decomposition is
 
 $$SE_j^2 = \underbrace{1/I_{jj}}_{\text{conditional variance}} \times VIF^{within}_j \times VIF^{between}_j.$$
 
-The conditional variance assumes all other parameters are known. The inflation
-factors describe uncertainty associated with estimating the other parameters
-of the same item and of the rest of the model. These quantities use mirt's
-internal scale: `g` and `u` are logits. With `SE.type = "Fisher"`, the
-calculation can use planned parameter values and sample size.
+The conditional variance assumes all other parameters are known. The inflation factors come from estimating the other parameters of the same item and of the rest of the model. These quantities use mirt's internal scale: `g` and `u` are logits. With `SE.type = "Fisher"`, the calculation can use planned parameter values and sample size.
 
-`id_samplesize()` helps assess how much precision a larger sample may provide.
-The mean, SD and mirt SE use the same `n_used` converged fits with a usable
-estimate and SE for that parameter. `success` and `conv` count successful
-and converged fits out of all attempts; `se_failure` is the fraction of
-converged fits without a usable estimate/SE pair. A small SD or SE based on
-few usable fits can be misleading, so inspect these counts and rates together.
+In `id_samplesize()`, the mean, SD and mirt SE use the same `n_used` converged fits with a usable estimate and SE for that parameter. `success` and `conv` count successful and converged fits out of all attempts; `se_failure` is the fraction of converged fits without a usable estimate/SE pair. For `g` and `u`, mirt's logit SEs are converted to the probability scale by the delta method.
 
-Estimates and SEs use the same reporting scale. For `g` and `u`, mirt's logit
-SEs are converted to the probability scale by the delta method. This
-approximation can be unreliable near a boundary. The function does not set
-a target precision or choose a required N.
+## Supported models
 
-## Scope
+Unidimensional, single-group fits from `mirt::mirt()`, with itemtypes `Rasch`, `2PL`, `3PL`, `3PLu`, `4PL` and `graded`, without equality constraints.
 
-Supported models are unidimensional, single-group fits from `mirt::mirt()`,
-with itemtypes `Rasch`, `2PL`, `3PL`, `3PLu`, `4PL` and `graded`, without equality
-constraints.
+## Parallel computation
 
-Diagnostic labels use numerical thresholds and a finite profile grid. They
-are screening results, not proofs of structural identification. Profile
-intervals use a chi-squared approximation, whose nominal coverage need not
-hold at parameter boundaries or under weak identification.
-
-Refitting 3PL and 4PL models can be slow. Functions that refit accept
-`parallel = TRUE` through `future.apply`:
+Functions that refit the model accept `parallel = TRUE` through `future.apply`:
 
 ```r
 future::plan(future::multisession, workers = 4)
 dx <- id_diagnose(fit, parallel = TRUE)
 ```
 
-See `vignette("irtident")` for the variance decomposition, profile diagnostics
-and sample-size examples.
+See `vignette("irtident")` for the variance decomposition, profile diagnostics and sample-size examples.
 
 ## References
 
 - Chalmers, R. P. (2012). mirt: A multidimensional item response theory package for the R environment. *Journal of Statistical Software, 48*(6), 1–29.
 - Raue, A., Kreutz, C., Maiwald, T., Bachmann, J., Schilling, M., Klingmüller, U., & Timmer, J. (2009). Structural and practical identifiability analysis of partially observed dynamical models by exploiting the profile likelihood. *Bioinformatics, 25*(15), 1923–1929.
+- Self, S. G., & Liang, K.-Y. (1987). Asymptotic properties of maximum likelihood estimators and likelihood ratio tests under nonstandard conditions. *Journal of the American Statistical Association, 82*(398), 605–610.
 
 ## License
 

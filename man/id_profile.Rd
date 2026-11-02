@@ -37,12 +37,10 @@ on the reporting scale (\code{g} and \code{u} as probabilities).}
 flagged parameters, size the grids and compute Wald intervals.}
 
 \item{stop_dev}{Tracing in one direction stops once the deviance exceeds
-\code{stop_dev} times the cutoff; the remaining grid points carry no
-information about the interval and are left as \code{NA}.}
+\code{stop_dev} times the cutoff; the remaining grid points are left as \code{NA}.}
 
 \item{tol_ll}{Log-likelihood gain above which a profile is reported as
-having found a better optimum than the original fit (\code{improved}).
-Smaller gains are treated as EM stopping slightly early on a flat ridge.}
+having found a better optimum than the original fit (\code{improved}).}
 
 \item{parallel}{If \code{TRUE}, parameters are profiled in parallel with
 \code{future.apply} under the current \code{future::plan()}.}
@@ -52,8 +50,8 @@ Smaller gains are treated as EM stopping slightly early on a flat ridge.}
 }
 \value{
 An object of class \code{irtident_profile}: a list with \code{summary} (one
-row per profiled parameter), \code{curves} (the profile for each parameter)
-and the \code{cutoff} used.
+row per profiled parameter), \code{curves} (the profile for each parameter),
+and the cutoffs used (\code{cutoff}, \code{cutoff_bound}).
 }
 \description{
 For each selected parameter, fixes it at a grid of values, re-estimates
@@ -72,16 +70,15 @@ interval is classified as
 \item \code{"open"}: the grid ends without crossing the cutoff.
 }
 
+For \code{g} and \code{u}, whose bounds lie on the edge of the parameter space, the
+deviance at the bound is compared with the cutoff of the 50:50 mixture of
+\eqn{\chi^2_0} and \eqn{\chi^2_1} (Self & Liang, 1987); 2.71 at the 95\%
+level. If it exceeds this cutoff, the side is \code{"closed"} at the bound.
+
 The resulting \code{status} is \code{"identified"} (both sides closed), \code{"bounded"}
 (one side at a natural bound, the other closed: the data rule out large
 values but not the bound itself), \code{"partial"} (one side open) or \code{"flat"}
-(neither side closed: the data barely distinguish values across the
-whole grid).
-
-These labels describe the evaluated grid. An open side does not establish
-that the interval is unbounded. The chi-squared cutoff is an asymptotic
-approximation; nominal coverage is not assured at parameter boundaries
-or under weak identification.
+(neither side closed).
 
 Deviances are measured from the highest log-likelihood seen (the original
 fit or any profile point). If a profile reaches a log-likelihood clearly
@@ -101,6 +98,11 @@ Raue, A., Kreutz, C., Maiwald, T., Bachmann, J., Schilling, M.,
 Klingmuller, U., & Timmer, J. (2009). Structural and practical
 identifiability analysis of partially observed dynamical models by
 exploiting the profile likelihood. \emph{Bioinformatics, 25}(15), 1923-1929.
+
+Self, S. G., & Liang, K.-Y. (1987). Asymptotic properties of maximum
+likelihood estimators and likelihood ratio tests under nonstandard
+conditions. \emph{Journal of the American Statistical Association, 82}(398),
+605-610.
 }
 \seealso{
 \code{\link[=id_local]{id_local()}}, \code{\link[=plot.irtident_profile]{plot.irtident_profile()}}

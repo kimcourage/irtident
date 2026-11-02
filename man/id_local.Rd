@@ -28,19 +28,17 @@ flagged as having little information.}
 \item{boundary}{Distance from a bound (e.g. \code{g} < \code{boundary}) at which a
 parameter is flagged as being at the boundary.}
 
-\item{eig_cut}{Eigenvalues of the correlation matrix of the estimates below
-this value define weakly identified directions. Parameters at a bound
-are left out of this eigen-analysis.}
+\item{eig_cut}{Eigenvalues of the scaled information matrix below this
+value define weakly identified directions. Parameters at a bound are
+left out of this eigen-analysis.}
 
 \item{SE.type}{\code{NULL} (default) uses the covariance matrix stored in \code{mod},
 or mirt's default information matrix if there is none. Any value
 accepted by the \code{SE.type} argument of \code{\link[mirt:mirt]{mirt::mirt()}} recomputes it, e.g.
 \code{"Fisher"} for the expected information. The expected information
-depends only on the parameter values and N, so it can be used at the
-design stage: set the parameters to planned values (\code{pars} with
-\code{TOL = NaN}) and check identification before collecting data. It
-enumerates all response patterns, so it is only feasible for short
-tests.}
+depends only on the parameter values and N, so it can be evaluated at
+planned parameter values (\code{pars} with \code{TOL = NaN}) before collecting
+data.}
 }
 \value{
 An object of class \code{irtident_local}, a list with
@@ -49,10 +47,14 @@ An object of class \code{irtident_local}, a list with
 \code{vif}, \code{vif_within}, \code{vif_between}, flags and a \code{status} of
 \code{"ok"}, \code{"weak"} or \code{"boundary"};}
 \item{items}{one row per item, summarising the worst parameter;}
-\item{directions}{weakly identified parameter combinations;}
+\item{directions}{weakly identified parameter combinations, named by
+eigenvalue;}
 \item{cor}{correlation matrix of the estimates;}
 \item{singular}{\code{TRUE} if the information matrix could not be
-inverted. This may reflect weak identification or numerical problems.}
+inverted;}
+\item{condnum}{condition number of the scaled information matrix;}
+\item{mirt_condnum}{condition number reported by mirt;}
+\item{cuts}{thresholds used.}
 }
 }
 \description{
@@ -73,14 +75,15 @@ the guessing parameter \code{g} and the intercept \code{d} in the 3PL);
 parameters of \emph{other items} and of the latent distribution.
 }
 
-A large total VIF indicates confounding in the local quadratic
-approximation; a large \code{se_cond} indicates little conditional information.
-Parameters sitting at a bound (e.g. \code{g} near
-0) are flagged separately because the usual asymptotics do not apply.
+A large total VIF indicates confounding with other parameters; a large
+\code{se_cond} indicates little information about the parameter itself.
+Parameters at a bound (e.g. \code{g} near 0) are flagged as \code{boundary}.
 
-Near-null directions of the correlation matrix of the estimates are
-reported in \code{directions}: each lists the parameters that move together
-along a weakly identified combination.
+\code{directions} lists the eigenvectors of the information matrix, scaled to
+unit diagonal, whose eigenvalues are below \code{eig_cut}. Each eigenvector is
+a combination of parameters along which the log-likelihood is nearly
+flat; loadings with opposite signs move in opposite directions.
+\code{condnum} is the condition number of the same matrix.
 
 Standard errors and VIFs are on mirt's internal scale, where \code{g} and \code{u}
 are logits. Point estimates are reported on the usual scale.

@@ -52,10 +52,8 @@ behaves like a simpler model;
 or equivalent-fit solutions differ beyond the specified tolerance.
 }
 
-These are diagnostic labels, not proofs of structural identification.
 Each flagged parameter also gets a suggested follow-up check.
-\code{\link[=id_samplesize]{id_samplesize()}} is not run here because it is much slower; call it on
-the parameters of interest afterwards.
+\code{\link[=id_samplesize]{id_samplesize()}} is run separately.
 }
 \examples{
 \donttest{
