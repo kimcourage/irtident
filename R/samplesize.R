@@ -1,35 +1,28 @@
-#' Sample size needed to recover selected parameters
+#' Parameter recovery across sample sizes
 #'
-#' A parametric-bootstrap style simulation: data sets of several sizes are
-#' generated from a true model (by default the fitted model itself), the same
-#' model is refitted, and the recovery of the selected parameters is
-#' summarised. The result answers the practical question "how many
-#' respondents would I need before this item's guessing parameter can be
-#' estimated to within X?".
+#' Generates data sets at several sample sizes from an assumed true model
+#' (by default the fitted model), refits the model and summarises parameter
+#' recovery. Results are conditional on that model and the
+#' fitting settings.
 #'
 #' For each parameter and sample size the function reports the share of
 #' replications in which the model could be fitted (`success`), the share
 #' that converged within the iteration limit (`conv`), and the bias and root
 #' mean squared error (RMSE) over all fitted replications, plus the share of
-#' estimates that end up at a bound. Non-converged fits are kept in the RMSE
-#' because they are what an analyst would actually obtain; for 3PL/4PL
-#' models EM often needs many cycles along a flat direction, so fits use
+#' estimates that end up at a bound. Non-converged fits that return estimates
+#' are included in the RMSE; failed fits are excluded. Fits use
 #' `technical = list(NCYCLES = 2000)` unless you pass your own `technical`.
 #'
-#' The required sample size is the smallest `N` in the grid from which on
-#' the RMSE stays below `rmse_target` and the success rate stays above
-#' `min_success`.
+#' Results are descriptive: the function does not apply an RMSE cutoff or
+#' select a required sample size. RMSE is an average loss, not a bound on an
+#' individual estimate's error. Interpret it alongside the fitting success
+#' and convergence rates and allow for simulation variability.
 #'
 #' @param mod A unidimensional single-group model fitted with [mirt::mirt()].
 #' @param params Parameters to study; `NULL` (default) uses those flagged by
 #'   [id_local()]. See [id_profile()] for the accepted formats.
 #' @param N Sample sizes to simulate.
 #' @param reps Replications per sample size.
-#' @param rmse_target Named vector of target RMSEs by parameter type
-#'   (`a1`, `d`, `g`, `u`, `COV_11`); graded intercepts `d1`, `d2`, ... use
-#'   the `d` target. Values are on the reporting scale.
-#' @param min_success Minimum share of replications in which the model must
-#'   be fitted successfully (no error, no empty response category).
 #' @param truth A fitted mirt model with the same items and itemtypes from
 #'   which data are generated. Defaults to `mod`. To ask "what if the true
 #'   guessing parameter were 0.2?", edit `mirt::mod2values(mod)` and refit
@@ -41,8 +34,7 @@
 #' @param ... Further arguments passed to [mirt::mirt()] for every fit.
 #'
 #' @return An object of class `irtident_samplesize` with `summary` (one row
-#'   per parameter and sample size), `required` (one row per parameter) and
-#'   the raw `estimates`.
+#'   per parameter and sample size), the raw `estimates` and `reps`.
 #' @examples
 #' \donttest{
 #' library(mirt)
@@ -55,10 +47,15 @@
 #' @export
 id_samplesize <- function(mod, params = NULL,
                           N = c(250, 500, 1000, 2000, 4000), reps = 30,
-                          rmse_target = c(a1 = 0.3, d = 0.3, g = 0.05,
-                                          u = 0.05, COV_11 = 0.2),
-                          min_success = 0.9, truth = mod, local = NULL,
+                          truth = mod, local = NULL,
                           parallel = FALSE, ...) {
+  extra <- list(...)
+  removed <- intersect(names(extra), c("rmse_target", "min_success"))
+  if (length(removed)) {
+    stop("Removed argument(s): ", paste(removed, collapse = ", "),
+         ". id_samplesize() reports recovery without a cutoff or required N.",
+         call. = FALSE)
+  }
   .check_mod(mod)
   .check_mod(truth)
   if (!identical(mirt::extract.mirt(mod, "itemtype"),
@@ -84,7 +81,6 @@ id_samplesize <- function(mod, params = NULL,
   # simulate all data up front so results do not depend on `parallel`
   jobs <- expand.grid(rep = seq_len(reps), N = N)
   datasets <- lapply(jobs$N, function(n) mirt::simdata(model = truth, N = n))
-  extra <- list(...)
   if (is.null(extra$technical)) extra$technical <- list(NCYCLES = 2000)
 
   res <- .lapply(seq_along(datasets), function(j) {
@@ -133,30 +129,6 @@ id_samplesize <- function(mod, params = NULL,
     }
   }
   summary <- do.call(rbind, rows)
-  summary$target <- .target_for(sub("^.*:", "", summary$param), rmse_target)
-  summary$meets <- !is.na(summary$rmse) & summary$rmse <= summary$target &
-                   summary$success >= min_success
-
-  required <- do.call(rbind, lapply(params, function(p) {
-    s <- summary[summary$param == p, ]
-    s <- s[order(s$N), ]
-    # smallest N from which on every larger N also meets the targets
-    ok_from <- rev(cumprod(rev(s$meets))) == 1
-    n_req <- if (any(ok_from)) s$N[which(ok_from)[1]] else NA_integer_
-    data.frame(param = p, true = s$true[1], target_rmse = s$target[1],
-               N_required = n_req,
-               note = if (is.na(n_req)) paste0("> ", max(N), " (not reached)") else "",
-               stringsAsFactors = FALSE)
-  }))
-  structure(list(summary = summary, required = required, estimates = estimates,
-                 reps = reps, min_success = min_success),
+  structure(list(summary = summary, estimates = estimates, reps = reps),
             class = "irtident_samplesize")
-}
-
-# look up a per-parameter-type value; graded intercepts d1, d2, ... use "d"
-.target_for <- function(name, values) {
-  key <- ifelse(grepl("^d[0-9]+$", name), "d", name)
-  out <- unname(values[key])
-  out[is.na(out)] <- Inf
-  out
 }

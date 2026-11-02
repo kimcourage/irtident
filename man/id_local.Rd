@@ -52,13 +52,12 @@ An object of class \code{irtident_local}, a list with
 \item{directions}{weakly identified parameter combinations;}
 \item{cor}{correlation matrix of the estimates;}
 \item{singular}{\code{TRUE} if the information matrix could not be
-inverted (itself strong evidence of non-identification).}
+inverted. This may reflect weak identification or numerical problems.}
 }
 }
 \description{
 Uses the estimated covariance matrix of the parameters (the inverse of the
-information matrix) to show, parameter by parameter, how precisely each
-one is determined and \emph{why} it is imprecise.
+information matrix) to describe parameter precision and variance inflation.
 }
 \details{
 For each parameter \eqn{j} the sampling variance is split as
@@ -68,15 +67,15 @@ where
 \item \eqn{SE_{cond,j} = 1/\sqrt{I_{jj}}} is the standard error the parameter
 would have if every other parameter were known (intrinsic information);
 \item \eqn{VIF^{within}_j} is the variance inflation caused by not knowing the
-other parameters \emph{of the same item} (e.g. the classic trade-off between
+other parameters \emph{of the same item} (e.g. the association between
 the guessing parameter \code{g} and the intercept \code{d} in the 3PL);
 \item \eqn{VIF^{between}_j} is the extra inflation caused by not knowing the
 parameters of \emph{other items} and of the latent distribution.
 }
 
-A large total VIF means the parameter is confounded with others (a nearly
-flat ridge in the likelihood); a large \code{se_cond} means the data carry little
-information about it at all. Parameters sitting at a bound (e.g. \code{g} near
+A large total VIF indicates confounding in the local quadratic
+approximation; a large \code{se_cond} indicates little conditional information.
+Parameters sitting at a bound (e.g. \code{g} near
 0) are flagged separately because the usual asymptotics do not apply.
 
 Near-null directions of the correlation matrix of the estimates are

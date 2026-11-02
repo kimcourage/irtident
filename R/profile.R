@@ -3,7 +3,7 @@
 #' For each selected parameter, fixes it at a grid of values, re-estimates
 #' all other parameters, and records the profile log-likelihood. The profile
 #' is traced outward from the estimate, each refit starting from the previous
-#' solution (continuation), which keeps refits fast and stable.
+#' solution (continuation).
 #'
 #' Following Raue et al. (2009), a parameter is *practically identified* when
 #' its profile likelihood interval is closed on both sides. Each side of the
@@ -18,6 +18,11 @@
 #' values but not the bound itself), `"partial"` (one side open) or `"flat"`
 #' (neither side closed: the data barely distinguish values across the
 #' whole grid).
+#'
+#' These labels describe the evaluated grid. An open side does not establish
+#' that the interval is unbounded. The chi-squared cutoff is an asymptotic
+#' approximation; nominal coverage is not assured at parameter boundaries
+#' or under weak identification.
 #'
 #' Deviances are measured from the highest log-likelihood seen (the original
 #' fit or any profile point). If a profile reaches a log-likelihood clearly

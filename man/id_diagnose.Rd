@@ -44,15 +44,16 @@ parameter and per item:
 \details{
 \itemize{
 \item \code{"ok"}: no diagnostic raised a concern;
-\item \code{"weak"}: the parameter is identified but poorly (high variance
+\item \code{"weak"}: the diagnostics indicate imprecision (high variance
 inflation, little information, or a profile interval open on one side);
 \item \code{"boundary"}: the estimate sits at a bound (e.g. \code{g} = 0), so the item
 behaves like a simpler model;
-\item \code{"not identified"}: the profile likelihood is flat over the whole grid,
-or equally good solutions from different starts disagree.
+\item \code{"not identified"}: neither side of the profile crosses the cutoff,
+or equivalent-fit solutions differ beyond the specified tolerance.
 }
 
-Each flagged parameter also gets a short piece of advice.
+These are diagnostic labels, not proofs of structural identification.
+Each flagged parameter also gets a suggested follow-up check.
 \code{\link[=id_samplesize]{id_samplesize()}} is not run here because it is much slower; call it on
 the parameters of interest afterwards.
 }

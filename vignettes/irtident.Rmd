@@ -1,8 +1,8 @@
 ---
-title: "Which item parameters are identified? A tour of irtident"
+title: "Identification diagnostics with irtident"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Which item parameters are identified? A tour of irtident}
+  %\VignetteIndexEntry{Identification diagnostics with irtident}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,11 +17,11 @@ library(mirt)
 library(irtident)
 ```
 
-## The problem
+## A 3PL example
 
-A model can converge, pass the second-order test and still contain
-parameters that the data barely determine. mirt summarises this with one
-number, the condition number of the information matrix:
+Convergence and a positive-definite information matrix do not establish
+precise estimation of every parameter. mirt provides the information-matrix
+condition number as one summary of numerical conditioning:
 
 ```{r fit}
 dat <- expand.table(LSAT7)
@@ -30,11 +30,10 @@ extract.mirt(fit, "secondordertest")
 extract.mirt(fit, "condnum")
 ```
 
-A condition number in the millions says *something* is badly determined,
-but not what, nor why, nor what to do about it. That is what irtident
-answers, item by item.
+A large condition number motivates closer inspection, although its magnitude
+depends on the parameter scale. irtident adds diagnostics by item and parameter.
 
-## One call: `id_diagnose()`
+## Combined diagnostics
 
 ```{r diagnose}
 set.seed(1)
@@ -43,8 +42,8 @@ dx
 ```
 
 Four of the five items have a guessing parameter at its lower bound: for
-them the data are consistent with a 2PL item. Item 2 is the interesting
-one. Its guessing parameter is estimated at about 0.3, but it trades off
+them the data are consistent with a 2PL item. Item 2's guessing parameter
+is estimated at about 0.3, but it is associated
 with the intercept, and the data cannot rule out `g = 0`.
 
 The diagnosis combines three pieces of evidence, described below.
@@ -69,23 +68,22 @@ p <- loc$params[loc$params$item == "Item.2",
 p
 ```
 
-For item 2, `g` and `d` each carry plenty of information on their own
-(`se_cond` around 0.13), but their standard errors are inflated about
-twenty-fold by confounding with each other, within the item. The
-correlation-matrix eigen-analysis finds the same weak direction:
+For item 2, the within-item variance inflation factors for `g` and `d` are
+about 20 in the reference run. This corresponds to a standard-error multiplier
+of about $\sqrt{20}$, not 20. The local standard errors for `g` are on the
+logit scale. The correlation-matrix diagnostic also reports parameter
+combinations associated with small eigenvalues:
 
 ```{r directions}
 loc$directions
 ```
 
-### Why easy items cannot identify guessing
+### Guessing parameters in easy items
 
-The decomposition makes a textbook fact visible. Take a 3PL test in which
-every item has `a = 1.5` and `g = 0.2`, from very easy to very hard. Rather
-than looking at one noisy sample, evaluate the *expected* (Fisher)
-information at the true parameter values. This only needs the parameter
-values and N, so the same idea works at the design stage, before any data
-are collected:
+Consider a 3PL test with `a = 1.5` and `g = 0.2` for every item and a range
+of difficulties. The following code evaluates expected (Fisher) information
+at the generating values. The information depends on those values and N;
+the simulated data provide the mirt object used for the calculation.
 
 ```{r sim}
 set.seed(2026)
@@ -108,13 +106,13 @@ round(data.frame(b = b, se = g_rows$se, se_cond = g_rows$se_cond,
 ```{r sim-plot, fig.height = 4}
 plot(b, g_rows$se, log = "y", pch = 19, type = "b",
      xlab = "item difficulty b", ylab = "SE of logit(g), log scale",
-     main = "Guessing is hard to pin down for easy items (N = 3000)")
+     main = "Precision of guessing estimates by item difficulty (N = 3000)")
 ```
 
-Guessing only shows up in the responses of people who are unlikely to know
-the answer. For easy items there are few such people, so there is little
-information about `g` at all (`se_cond` is large) and what there is cannot
-easily be told apart from the intercept (`vif_within` is large).
+The lower asymptote is most evident at low ability relative to item
+difficulty. For easy items, few respondents occupy that region. In this
+example, easy items have less conditional information about `g` and greater
+within-item confounding with the intercept.
 
 ## 2. Profile likelihood: is the interval closed?
 
@@ -132,16 +130,19 @@ plot(dx, params = c("Item.1:g", "Item.2:g", "Item.4:g", "Item.2:a1"))
 ```
 
 For `Item.2:g` the Wald interval excludes 0, but the profile interval
-reaches it: the quadratic approximation behind the standard error is poor
-here, and the profile interval is the one to report. For `Item.1:g` the
-profile is flat across the whole range from 0 to 0.5.
+reaches it. The difference indicates that a local quadratic approximation
+does not describe the full profile well. For `Item.1:g`, the profile does
+not cross the cutoff over the evaluated range from 0 to 0.5. These intervals
+use an asymptotic chi-squared cutoff; coverage can differ from the nominal
+level at boundaries and under weak identification.
 
-## 3. Multiple starts: ridges versus local optima
+## 3. Multiple starting values
 
 `id_multistart()` refits from random starting values and clusters the
 solutions. Clusters with the same log-likelihood but different parameter
-values reveal a flat ridge; clusters with lower log-likelihood are local
-optima. The 4PL is a good example of the former:
+values can indicate weak identification or distinct modes. Clusters with
+lower log-likelihood suggest optimisation problems. Convergence needs to
+be checked before treating either group as optima. For example:
 
 ```{r multistart}
 fit4 <- mirt(dat, 1, itemtype = "4PL", verbose = FALSE)
@@ -150,14 +151,14 @@ ms <- id_multistart(fit4, n_starts = 6)
 ms
 ```
 
-Starts that hit the iteration limit are kept on purpose: EM crawling along
-a flat ridge until it runs out of iterations is itself a symptom.
+Starts that hit the iteration limit remain in the comparison. Slow convergence
+can accompany weak identification, but is not sufficient evidence of it.
 
-## 4. How much data would it take?
+## 4. Parameter recovery across sample sizes
 
 `id_samplesize()` simulates from the fitted model at several sample sizes,
-refits, and reports bias and RMSE for the chosen parameters. It is slow, so
-it is not part of `id_diagnose()`:
+refits, and reports bias and RMSE for the chosen parameters. These additional
+fits can be expensive, so the simulation is separate from `id_diagnose()`:
 
 ```{r samplesize, eval = FALSE}
 set.seed(1)
@@ -166,6 +167,16 @@ ss <- id_samplesize(fit, params = c("Item.2:g", "Item.2:a1"),
 ss
 plot(ss)
 ```
+
+The RMSE includes returned estimates from non-converged fits and excludes
+failed fits. `success` is the proportion of fits that returned a model with
+the expected response categories; `conv` is the proportion that converged.
+The function reports recovery across N without an RMSE cutoff, a pass/fail
+label or an automatically selected sample size. A smaller RMSE describes
+better point-estimate recovery under the assumed generating model; it does
+not by itself establish identification. Interpret it alongside fitting
+success and convergence. The 20 replications in this example illustrate the
+procedure and may leave substantial simulation variability.
 
 ## Running in parallel
 

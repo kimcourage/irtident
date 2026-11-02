@@ -39,3 +39,8 @@ test_that("print and plot methods run", {
   on.exit(dev.off())
   expect_invisible(plot(ms))
 })
+
+test_that("spread thresholds are matched to graded intercepts", {
+  out <- irtident:::.target_for(c("d2", "a1", "zz"), c(a1 = 0.3, d = 0.2))
+  expect_equal(out, c(0.2, 0.3, Inf))
+})

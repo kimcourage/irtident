@@ -1,5 +1,13 @@
 # Internal helpers -----------------------------------------------------------
 
+# Look up a threshold by parameter type; graded intercepts use "d".
+.target_for <- function(name, values) {
+  key <- ifelse(grepl("^d[0-9]+$", name), "d", name)
+  out <- unname(values[key])
+  out[is.na(out)] <- Inf
+  out
+}
+
 .supported_itemtypes <- c("Rasch", "2PL", "3PL", "3PLu", "4PL", "graded")
 
 #' Validate a fitted mirt model for use with irtident

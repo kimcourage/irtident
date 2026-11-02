@@ -23,9 +23,9 @@ id_multistart(
 parameter (reporting scale) differs by more than this.}
 
 \item{tol_ll}{Clusters whose best log-likelihood is within \code{tol_ll} of the
-overall best count as equivalent-fit modes. The default (0.1, a deviance
-of 0.2) is far below any test cutoff, so such solutions are practically
-indistinguishable.}
+overall best count as equivalent-fit modes. The default log-likelihood
+tolerance of 0.1 corresponds to a deviance difference of 0.2; it is a
+numerical comparison threshold, not a hypothesis test.}
 
 \item{unstable_cut}{Named vector of spreads (reporting scale, by parameter
 type; graded intercepts use \code{d}) above which a parameter is flagged as
@@ -40,9 +40,8 @@ stopping at slightly different points rather than a real ridge.}
 An object of class \code{irtident_multistart}, a list with
 \describe{
 \item{solutions}{one row per start: log-likelihood, convergence and
-cluster. Solutions that hit the iteration limit are kept, because an
-EM run that keeps crawling along a flat ridge is itself a symptom of
-weak identification;}
+cluster. Solutions that hit the iteration limit are kept for
+comparison, but should not be treated as confirmed optima;}
 \item{estimates}{matrix of estimates, starts in rows (reporting
 scale);}
 \item{clusters}{one row per cluster with its size, best
@@ -57,17 +56,16 @@ solutions (in an equivalent-fit cluster).}
 \description{
 Refits the model from \code{n_starts} random starting values and groups the
 solutions that agree (up to \code{tol_par} in every parameter). Comparing the
-clusters separates two different problems:
+clusters helps assess sensitivity to starting values:
 }
 \details{
 \itemize{
 \item \strong{equivalent-fit modes}: several clusters reach (almost) the same
-log-likelihood with different parameter values. The likelihood has a
-flat ridge, so the parameters that differ between these clusters are
-not identified by the data.
+log-likelihood with different parameter values. This can indicate weak
+identification or distinct modes; it does not by itself establish a
+continuous ridge.
 \item \strong{inferior local optima}: clusters with clearly lower log-likelihood.
-These are an optimisation problem, not an identification problem, but
-they matter if the original fit landed in one of them.
+Check convergence before interpreting them as local optima.
 }
 
 The reflection \eqn{\theta \to -\theta} (all slopes change sign) gives an

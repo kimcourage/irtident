@@ -2,15 +2,14 @@
 #'
 #' Refits the model from `n_starts` random starting values and groups the
 #' solutions that agree (up to `tol_par` in every parameter). Comparing the
-#' clusters separates two different problems:
+#' clusters helps assess sensitivity to starting values:
 #'
 #' * **equivalent-fit modes**: several clusters reach (almost) the same
-#'   log-likelihood with different parameter values. The likelihood has a
-#'   flat ridge, so the parameters that differ between these clusters are
-#'   not identified by the data.
+#'   log-likelihood with different parameter values. This can indicate weak
+#'   identification or distinct modes; it does not by itself establish a
+#'   continuous ridge.
 #' * **inferior local optima**: clusters with clearly lower log-likelihood.
-#'   These are an optimisation problem, not an identification problem, but
-#'   they matter if the original fit landed in one of them.
+#'   Check convergence before interpreting them as local optima.
 #'
 #' The reflection \eqn{\theta \to -\theta} (all slopes change sign) gives an
 #' identical likelihood in a unidimensional model and is removed before
@@ -21,9 +20,9 @@
 #' @param tol_par Two solutions are put in the same cluster when no
 #'   parameter (reporting scale) differs by more than this.
 #' @param tol_ll Clusters whose best log-likelihood is within `tol_ll` of the
-#'   overall best count as equivalent-fit modes. The default (0.1, a deviance
-#'   of 0.2) is far below any test cutoff, so such solutions are practically
-#'   indistinguishable.
+#'   overall best count as equivalent-fit modes. The default log-likelihood
+#'   tolerance of 0.1 corresponds to a deviance difference of 0.2; it is a
+#'   numerical comparison threshold, not a hypothesis test.
 #' @param unstable_cut Named vector of spreads (reporting scale, by parameter
 #'   type; graded intercepts use `d`) above which a parameter is flagged as
 #'   unstable across equivalent-fit modes. Smaller spreads usually reflect EM
@@ -34,9 +33,8 @@
 #' @return An object of class `irtident_multistart`, a list with
 #'   \describe{
 #'     \item{solutions}{one row per start: log-likelihood, convergence and
-#'       cluster. Solutions that hit the iteration limit are kept, because an
-#'       EM run that keeps crawling along a flat ridge is itself a symptom of
-#'       weak identification;}
+#'       cluster. Solutions that hit the iteration limit are kept for
+#'       comparison, but should not be treated as confirmed optima;}
 #'     \item{estimates}{matrix of estimates, starts in rows (reporting
 #'       scale);}
 #'     \item{clusters}{one row per cluster with its size, best
@@ -89,8 +87,7 @@ id_multistart <- function(mod, n_starts = 20, tol_par = 0.05, tol_ll = 0.1,
   colnames(est) <- pt$param
   rownames(est) <- c("original", paste0("start", seq_len(n_starts)))
 
-  # non-converged solutions are kept: EM crawling along a flat ridge until the
-  # iteration limit is itself a symptom of weak identification
+  # Keep returned estimates for comparison, with convergence reported separately.
   use <- which(ok)
   cluster <- rep(NA_integer_, length(all_fits))
   if (length(use) > 1L) {

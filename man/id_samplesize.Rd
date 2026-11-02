@@ -2,15 +2,13 @@
 % Please edit documentation in R/samplesize.R
 \name{id_samplesize}
 \alias{id_samplesize}
-\title{Sample size needed to recover selected parameters}
+\title{Parameter recovery across sample sizes}
 \usage{
 id_samplesize(
   mod,
   params = NULL,
   N = c(250, 500, 1000, 2000, 4000),
   reps = 30,
-  rmse_target = c(a1 = 0.3, d = 0.3, g = 0.05, u = 0.05, COV_11 = 0.2),
-  min_success = 0.9,
   truth = mod,
   local = NULL,
   parallel = FALSE,
@@ -27,13 +25,6 @@ id_samplesize(
 
 \item{reps}{Replications per sample size.}
 
-\item{rmse_target}{Named vector of target RMSEs by parameter type
-(\code{a1}, \code{d}, \code{g}, \code{u}, \code{COV_11}); graded intercepts \code{d1}, \code{d2}, ... use
-the \code{d} target. Values are on the reporting scale.}
-
-\item{min_success}{Minimum share of replications in which the model must
-be fitted successfully (no error, no empty response category).}
-
 \item{truth}{A fitted mirt model with the same items and itemtypes from
 which data are generated. Defaults to \code{mod}. To ask "what if the true
 guessing parameter were 0.2?", edit \code{mirt::mod2values(mod)} and refit
@@ -49,30 +40,27 @@ parameters).}
 }
 \value{
 An object of class \code{irtident_samplesize} with \code{summary} (one row
-per parameter and sample size), \code{required} (one row per parameter) and
-the raw \code{estimates}.
+per parameter and sample size), the raw \code{estimates} and \code{reps}.
 }
 \description{
-A parametric-bootstrap style simulation: data sets of several sizes are
-generated from a true model (by default the fitted model itself), the same
-model is refitted, and the recovery of the selected parameters is
-summarised. The result answers the practical question "how many
-respondents would I need before this item's guessing parameter can be
-estimated to within X?".
+Generates data sets at several sample sizes from an assumed true model
+(by default the fitted model), refits the model and summarises parameter
+recovery. Results are conditional on that model and the
+fitting settings.
 }
 \details{
 For each parameter and sample size the function reports the share of
 replications in which the model could be fitted (\code{success}), the share
 that converged within the iteration limit (\code{conv}), and the bias and root
 mean squared error (RMSE) over all fitted replications, plus the share of
-estimates that end up at a bound. Non-converged fits are kept in the RMSE
-because they are what an analyst would actually obtain; for 3PL/4PL
-models EM often needs many cycles along a flat direction, so fits use
+estimates that end up at a bound. Non-converged fits that return estimates
+are included in the RMSE; failed fits are excluded. Fits use
 \code{technical = list(NCYCLES = 2000)} unless you pass your own \code{technical}.
 
-The required sample size is the smallest \code{N} in the grid from which on
-the RMSE stays below \code{rmse_target} and the success rate stays above
-\code{min_success}.
+Results are descriptive: the function does not apply an RMSE cutoff or
+select a required sample size. RMSE is an average loss, not a bound on an
+individual estimate's error. Interpret it alongside the fitting success
+and convergence rates and allow for simulation variability.
 }
 \examples{
 \donttest{

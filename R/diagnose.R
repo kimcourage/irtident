@@ -5,14 +5,15 @@
 #' parameter and per item:
 #'
 #' * `"ok"`: no diagnostic raised a concern;
-#' * `"weak"`: the parameter is identified but poorly (high variance
+#' * `"weak"`: the diagnostics indicate imprecision (high variance
 #'   inflation, little information, or a profile interval open on one side);
 #' * `"boundary"`: the estimate sits at a bound (e.g. `g` = 0), so the item
 #'   behaves like a simpler model;
-#' * `"not identified"`: the profile likelihood is flat over the whole grid,
-#'   or equally good solutions from different starts disagree.
+#' * `"not identified"`: neither side of the profile crosses the cutoff,
+#'   or equivalent-fit solutions differ beyond the specified tolerance.
 #'
-#' Each flagged parameter also gets a short piece of advice.
+#' These are diagnostic labels, not proofs of structural identification.
+#' Each flagged parameter also gets a suggested follow-up check.
 #' [id_samplesize()] is not run here because it is much slower; call it on
 #' the parameters of interest afterwards.
 #'
@@ -110,14 +111,14 @@ id_diagnose <- function(mod, profile = TRUE, multistart = TRUE,
     if (r$verdict == "boundary") {
       iss <- c(iss, paste0("at bound (", .fmt(r$est), ")"))
       adv <- c(adv, switch(r$name,
-        g = "fix g = 0 for this item (2PL), or use a prior on g",
-        u = "fix u = 1 for this item, or use a prior on u",
+        g = "consider a simpler model (fix g = 0), or assess sensitivity to a prior on g",
+        u = "consider fixing u = 1, or assess sensitivity to a prior on u",
         "check the model; consider fixing this parameter"))
     }
     if (!is.na(r$profile) && r$profile == "flat") {
       iss <- c(iss, "flat profile likelihood")
       if (r$verdict != "boundary") {
-        adv <- c(adv, "the data cannot pin it down: fix it, add a prior, or collect more data where it matters")
+        adv <- c(adv, "check a wider profile grid and convergence; assess sensitivity to parameter constraints or priors")
       }
     } else if (!is.na(r$profile) && r$profile == "bounded" && r$verdict != "boundary") {
       iss <- c(iss, paste0("profile interval reaches the bound (", r$name, " = ",
@@ -131,7 +132,7 @@ id_diagnose <- function(mod, profile = TRUE, multistart = TRUE,
     if (grepl("confounded", r$local_flags)) {
       iss <- c(iss, paste0("confounded with ", partner[r$param], " (VIF ", round(r$vif, 1), ")"))
       if (!length(adv)) adv <- c(adv, paste0("estimate ", r$name, " and ", partner[r$param],
-                                             " jointly with care; a prior on one of them helps"))
+                                             "; inspect their joint uncertainty and sensitivity to priors"))
     }
     if (grepl("little information", r$local_flags)) iss <- c(iss, "little information")
     if (grepl("imprecise", r$local_flags)) iss <- c(iss, "large SE")

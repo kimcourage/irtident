@@ -4,11 +4,20 @@ test_that("sample size simulation returns the expected structure", {
                       N = c(300, 1000), reps = 3)
   expect_s3_class(ss, "irtident_samplesize")
   expect_equal(nrow(ss$summary), 4L)
-  expect_equal(nrow(ss$required), 2L)
+  expect_named(ss, c("summary", "estimates", "reps"))
+  expect_false(any(c("target", "meets") %in% names(ss$summary)))
   expect_equal(nrow(ss$estimates), 6L)
   expect_true(all(ss$summary$success >= 0 & ss$summary$success <= 1))
   expect_true(all(ss$summary$rmse >= 0, na.rm = TRUE))
-  expect_output(print(ss), "Required sample size")
+  for (i in seq_len(nrow(ss$summary))) {
+    s <- ss$summary[i, ]
+    z <- ss$estimates[ss$estimates$N == s$N & ss$estimates$ok, s$param]
+    expect_equal(s$rmse, sqrt(mean((z - s$true)^2, na.rm = TRUE)))
+    expect_equal(s$bias, mean(z, na.rm = TRUE) - s$true)
+  }
+  output <- paste(capture.output(print(ss)), collapse = "\n")
+  expect_match(output, "rmse")
+  expect_false(grepl("Required sample size|target|meets", output))
   pdf(NULL)
   on.exit(dev.off())
   expect_invisible(plot(ss))
@@ -25,7 +34,9 @@ test_that("truth must match the model", {
                "same items and itemtypes")
 })
 
-test_that("rmse targets are matched to graded intercepts", {
-  out <- irtident:::.target_for(c("d2", "a1", "zz"), c(a1 = 0.3, d = 0.2))
-  expect_equal(out, c(0.2, 0.3, Inf))
+test_that("removed cutoff arguments cannot be passed silently to mirt", {
+  expect_error(id_samplesize(get_fit("2PL"), rmse_target = c(a1 = 0.3)),
+               "Removed argument.*rmse_target")
+  expect_error(id_samplesize(get_fit("2PL"), min_success = 0.9),
+               "Removed argument.*min_success")
 })

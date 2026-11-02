@@ -15,5 +15,5 @@
 \code{x}, invisibly.
 }
 \description{
-RMSE against sample size for each parameter, with its target (dashed).
+RMSE against sample size for each parameter.
 }

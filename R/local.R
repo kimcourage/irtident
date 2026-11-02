@@ -1,8 +1,7 @@
 #' Item-level local identification diagnostics
 #'
 #' Uses the estimated covariance matrix of the parameters (the inverse of the
-#' information matrix) to show, parameter by parameter, how precisely each
-#' one is determined and *why* it is imprecise.
+#' information matrix) to describe parameter precision and variance inflation.
 #'
 #' For each parameter \eqn{j} the sampling variance is split as
 #' \deqn{SE_j^2 = SE_{cond,j}^2 \times VIF^{within}_j \times VIF^{between}_j}
@@ -10,14 +9,14 @@
 #' * \eqn{SE_{cond,j} = 1/\sqrt{I_{jj}}} is the standard error the parameter
 #'   would have if every other parameter were known (intrinsic information);
 #' * \eqn{VIF^{within}_j} is the variance inflation caused by not knowing the
-#'   other parameters *of the same item* (e.g. the classic trade-off between
+#'   other parameters *of the same item* (e.g. the association between
 #'   the guessing parameter `g` and the intercept `d` in the 3PL);
 #' * \eqn{VIF^{between}_j} is the extra inflation caused by not knowing the
 #'   parameters of *other items* and of the latent distribution.
 #'
-#' A large total VIF means the parameter is confounded with others (a nearly
-#' flat ridge in the likelihood); a large `se_cond` means the data carry little
-#' information about it at all. Parameters sitting at a bound (e.g. `g` near
+#' A large total VIF indicates confounding in the local quadratic
+#' approximation; a large `se_cond` indicates little conditional information.
+#' Parameters sitting at a bound (e.g. `g` near
 #' 0) are flagged separately because the usual asymptotics do not apply.
 #'
 #' Near-null directions of the correlation matrix of the estimates are
@@ -59,7 +58,7 @@
 #'     \item{directions}{weakly identified parameter combinations;}
 #'     \item{cor}{correlation matrix of the estimates;}
 #'     \item{singular}{`TRUE` if the information matrix could not be
-#'       inverted (itself strong evidence of non-identification).}
+#'       inverted. This may reflect weak identification or numerical problems.}
 #'   }
 #' @seealso [id_profile()], [id_multistart()], [id_diagnose()]
 #' @examples
@@ -122,7 +121,7 @@ id_local <- function(mod, vif_cut = 10, se_cut = 1, boundary = 0.01,
   pt$vif_between <- vif_between
   pt$at_bound <- at_bound
 
-  # at a bound the quadratic approximation is meaningless, so only "boundary"
+  # At a bound, report the boundary flag instead of quadratic diagnostics.
   confounded <- vif > vif_cut & !at_bound
   low_info <- se_cond > se_cut & !at_bound
   imprecise <- se > se_cut & !at_bound

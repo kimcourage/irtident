@@ -6,35 +6,32 @@
 \alias{irtident-package}
 \title{irtident: practical identification diagnostics for IRT models}
 \description{
-A fitted model can converge, pass mirt's second-order test and still have
-parameters that the data barely determine. irtident tells you \emph{which}
-item parameters are weakly identified and \emph{why}, for unidimensional,
-single-group models fitted with \code{\link[mirt:mirt]{mirt::mirt()}} (itemtypes \code{Rasch}, \verb{2PL},
-\verb{3PL}, \verb{3PLu}, \verb{4PL} and \code{graded}).
+Examines parameter uncertainty using variance decomposition, profile
+likelihoods, multiple starting values and sample-size simulations.
+Supports unidimensional, single-group models fitted with \code{\link[mirt:mirt]{mirt::mirt()}}
+(itemtypes \code{Rasch}, \verb{2PL}, \verb{3PL}, \verb{3PLu}, \verb{4PL} and \code{graded}).
 }
 \details{
 Main functions:
 \itemize{
-\item \code{\link[=id_diagnose]{id_diagnose()}}: runs the diagnostics below and gives one verdict per
-item, with advice;
+\item \code{\link[=id_diagnose]{id_diagnose()}}: combines local, profile and multi-start results by item;
 \item \code{\link[=id_local]{id_local()}}: item-level variance-inflation decomposition from the
 information matrix;
 \item \code{\link[=id_profile]{id_profile()}}: profile likelihood intervals and flatness;
 \item \code{\link[=id_multistart]{id_multistart()}}: multi-start estimation with clustering of solutions;
-\item \code{\link[=id_samplesize]{id_samplesize()}}: simulation of the sample size needed to recover a
-parameter.
+\item \code{\link[=id_samplesize]{id_samplesize()}}: parameter recovery across simulated sample sizes.
 }
 }
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/USERNAME/irtident}
-  \item Report bugs at \url{https://github.com/USERNAME/irtident/issues}
+  \item \url{https://github.com/kimcourage/irtident}
+  \item Report bugs at \url{https://github.com/kimcourage/irtident/issues}
 }
 
 }
 \author{
-\strong{Maintainer}: First Last \email{yonggi1124@gmail.com}
+\strong{Maintainer}: Yonggi Kim \email{yonggi1124@gmail.com}
 
 }
 \keyword{internal}

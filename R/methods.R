@@ -11,8 +11,8 @@ print.irtident_local <- function(x, ...) {
   cat("<irtident_local>", nrow(x$params), "estimated parameters,",
       sum(x$items$item != "GROUP"), "items\n")
   if (x$singular) {
-    cat("The information matrix could not be inverted: strong evidence that",
-        "some parameters are not identified.\n")
+    cat("The information matrix could not be inverted; check identification",
+        "and numerical stability.\n")
   } else {
     cat("Condition number of the correlation matrix of estimates:",
         format(signif(x$condnum, 3)), "\n")
@@ -84,14 +84,8 @@ print.irtident_multistart <- function(x, ...) {
 print.irtident_samplesize <- function(x, ...) {
   cat("<irtident_samplesize>", x$reps, "replications per sample size\n\n")
   s <- x$summary[, c("param", "N", "true", "success", "conv", "bias", "rmse",
-                     "p_bound", "target", "meets")]
+                     "p_bound")]
   print(.round_df(s, 3), row.names = FALSE)
-  cat("\nRequired sample size (RMSE <= target and success rate >=",
-      x$min_success, "from this N on):\n")
-  r <- x$required
-  r$N_required <- ifelse(is.na(r$N_required), r$note, r$N_required)
-  print(.round_df(r[, c("param", "true", "target_rmse", "N_required")], 3),
-        row.names = FALSE)
   invisible(x)
 }
 
@@ -106,7 +100,7 @@ print.irtident <- function(x, ...) {
   if (!is.na(mi$condnum)) {
     cat("mirt information-matrix condition number: ",
         formatC(mi$condnum, format = "g", digits = 3),
-        " (one number for the whole model; the table shows where it comes from)\n",
+        "\n",
         sep = "")
   }
   cat("\nItems:\n")
@@ -215,7 +209,7 @@ plot.irtident_multistart <- function(x, ...) {
 
 #' Plot sample-size simulation results
 #'
-#' RMSE against sample size for each parameter, with its target (dashed).
+#' RMSE against sample size for each parameter.
 #'
 #' @param x An `irtident_samplesize` object.
 #' @param ... Further graphical parameters passed to [graphics::plot()].
@@ -230,10 +224,9 @@ plot.irtident_samplesize <- function(x, ...) {
   on.exit(graphics::par(op))
   for (p in ps) {
     d <- s[s$param == p, ]
-    yl <- range(c(0, d$rmse, if (is.finite(d$target[1])) d$target[1]), na.rm = TRUE)
+    yl <- range(c(0, d$rmse), na.rm = TRUE)
     graphics::plot(d$N, d$rmse, type = "b", pch = 19, log = "x", ylim = yl,
                    xlab = "N", ylab = "RMSE", main = p, cex.main = 0.95, ...)
-    if (is.finite(d$target[1])) graphics::abline(h = d$target[1], lty = 2, col = "grey40")
   }
   invisible(x)
 }
