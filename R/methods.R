@@ -82,10 +82,14 @@ print.irtident_multistart <- function(x, ...) {
 
 #' @export
 print.irtident_samplesize <- function(x, ...) {
-  cat("<irtident_samplesize>", x$reps, "replications per sample size\n\n")
-  s <- x$summary[, c("param", "N", "true", "success", "conv", "bias", "rmse",
-                     "p_bound")]
+  cat("<irtident_samplesize>", x$reps, "replications per sample size;",
+      "current N =", x$current_N, "\n\n")
+  s <- x$summary[, c("param", "N", "current", "mean", "sd", "mirt_se",
+                     "n_used", "success", "conv", "se_failure")]
   print(.round_df(s, 3), row.names = FALSE)
+  cat("\nmean, sd and mirt_se use the same n_used converged fits with usable SEs.\n",
+      "mirt_se = sqrt(mean(SE^2)); se_failure is conditional on convergence.\n",
+      "Estimates and SEs are on the reporting scale.\n", sep = "")
   invisible(x)
 }
 
@@ -209,7 +213,9 @@ plot.irtident_multistart <- function(x, ...) {
 
 #' Plot sample-size simulation results
 #'
-#' RMSE against sample size for each parameter.
+#' Repeated-estimate SD and mirt SE against sample size for each parameter.
+#' Both curves use the same replications and reporting scale. Inspect
+#' `n_used`, `conv` and `se_failure` in the printed summary alongside the plot.
 #'
 #' @param x An `irtident_samplesize` object.
 #' @param ... Further graphical parameters passed to [graphics::plot()].
@@ -224,9 +230,16 @@ plot.irtident_samplesize <- function(x, ...) {
   on.exit(graphics::par(op))
   for (p in ps) {
     d <- s[s$param == p, ]
-    yl <- range(c(0, d$rmse), na.rm = TRUE)
-    graphics::plot(d$N, d$rmse, type = "b", pch = 19, log = "x", ylim = yl,
-                   xlab = "N", ylab = "RMSE", main = p, cex.main = 0.95, ...)
+    d <- d[order(d$N), ]
+    yl <- range(c(0, d$sd, d$mirt_se), na.rm = TRUE)
+    if (diff(yl) == 0) yl <- c(0, 1)
+    graphics::plot(d$N, d$sd, type = "b", pch = 19, log = "x", ylim = yl,
+                   xlab = "N", ylab = "SD / SE", main = p, cex.main = 0.95, ...)
+    graphics::lines(d$N, d$mirt_se, type = "b", pch = 17, lty = 2,
+                    col = "#0072B2")
+    graphics::legend("topright", legend = c("Repeated-estimate SD", "mirt SE (RMS)"),
+                     col = c("black", "#0072B2"), pch = c(19, 17),
+                     lty = c(1, 2), bty = "n", cex = 0.75)
   }
   invisible(x)
 }

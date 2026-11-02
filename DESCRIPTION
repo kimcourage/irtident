@@ -9,7 +9,7 @@ Description: Assesses parameter precision and identification in unidimensional,
     single-group item response models fitted with 'mirt'. Provides item-level
     variance decomposition, profile likelihood intervals, comparisons of
     estimates from multiple starting values, and simulations of parameter
-    recovery across sample sizes. Profile diagnostics follow the practical
+    precision across sample sizes. Profile diagnostics follow the practical
     identifiability approach of Raue et al. (2009)
     <doi:10.1093/bioinformatics/btp358>. Models are estimated with 'mirt'
     (Chalmers, 2012) <doi:10.18637/jss.v048.i06>.

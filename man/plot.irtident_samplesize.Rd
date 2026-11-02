@@ -15,5 +15,7 @@
 \code{x}, invisibly.
 }
 \description{
-RMSE against sample size for each parameter.
+Repeated-estimate SD and mirt SE against sample size for each parameter.
+Both curves use the same replications and reporting scale. Inspect
+\code{n_used}, \code{conv} and \code{se_failure} in the printed summary alongside the plot.
 }

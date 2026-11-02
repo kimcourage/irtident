@@ -11,7 +11,7 @@
 #'   information matrix;
 #' * [id_profile()]: profile likelihood intervals and flatness;
 #' * [id_multistart()]: multi-start estimation with clustering of solutions;
-#' * [id_samplesize()]: parameter recovery across simulated sample sizes.
+#' * [id_samplesize()]: parameter precision across simulated sample sizes.
 #'
 #' @keywords internal
 "_PACKAGE"

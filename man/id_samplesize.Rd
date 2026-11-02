@@ -2,7 +2,7 @@
 % Please edit documentation in R/samplesize.R
 \name{id_samplesize}
 \alias{id_samplesize}
-\title{Parameter recovery across sample sizes}
+\title{Parameter precision across sample sizes}
 \usage{
 id_samplesize(
   mod,
@@ -18,49 +18,59 @@ id_samplesize(
 \arguments{
 \item{mod}{A unidimensional single-group model fitted with \code{\link[mirt:mirt]{mirt::mirt()}}.}
 
-\item{params}{Parameters to study; \code{NULL} (default) uses those flagged by
+\item{params}{Parameters to study; \code{NULL} uses those flagged by
 \code{\link[=id_local]{id_local()}}. See \code{\link[=id_profile]{id_profile()}} for the accepted formats.}
 
 \item{N}{Sample sizes to simulate.}
 
 \item{reps}{Replications per sample size.}
 
-\item{truth}{A fitted mirt model with the same items and itemtypes from
-which data are generated. Defaults to \code{mod}. To ask "what if the true
-guessing parameter were 0.2?", edit \code{mirt::mod2values(mod)} and refit
-with \verb{pars = ..., TOL = NaN}.}
+\item{truth}{Generating model with the same items and itemtypes as \code{mod}.
+Defaults to \code{mod}. The argument name is retained for compatibility;
+these values specify a simulation scenario, not known population values.}
 
-\item{local}{Optional \code{irtident_local} object (to reuse flagged
-parameters).}
+\item{local}{Optional \code{irtident_local} object to reuse flagged parameters.}
 
-\item{parallel}{If \code{TRUE}, replications are run in parallel with
-\code{future.apply}.}
+\item{parallel}{If \code{TRUE}, run replications with \code{future.apply}.}
 
-\item{...}{Further arguments passed to \code{\link[mirt:mirt]{mirt::mirt()}} for every fit.}
+\item{...}{Further arguments to \code{\link[mirt:mirt]{mirt::mirt()}}, including \code{SE.type}.
+\code{SE} is managed by this function and must not be supplied here.}
 }
 \value{
-An object of class \code{irtident_samplesize} with \code{summary} (one row
-per parameter and sample size), the raw \code{estimates} and \code{reps}.
+An \code{irtident_samplesize} object with \code{summary}, raw \code{estimates},
+\code{standard_errors} on the reporting scale, \code{reps}, \code{current_N} and
+\code{generating} (the parameter values used to generate data).
 }
 \description{
-Generates data sets at several sample sizes from an assumed true model
-(by default the fitted model), refits the model and summarises parameter
-recovery. Results are conditional on that model and the
-fitting settings.
+Generates data sets at several sample sizes from a fitted model, refits
+each data set and compares the variability of estimates with mirt's
+reported standard errors. Results describe the generating model and
+fitting settings used in the simulation.
 }
 \details{
-For each parameter and sample size the function reports the share of
-replications in which the model could be fitted (\code{success}), the share
-that converged within the iteration limit (\code{conv}), and the bias and root
-mean squared error (RMSE) over all fitted replications, plus the share of
-estimates that end up at a bound. Non-converged fits that return estimates
-are included in the RMSE; failed fits are excluded. Fits use
-\code{technical = list(NCYCLES = 2000)} unless you pass your own \code{technical}.
+For each parameter and N, \code{current} is the estimate in \code{mod}. \code{mean} and
+\code{sd} summarise the repeated estimates; \code{mirt_se} is
+\code{sqrt(mean(SE^2))} across the same replications. These three summaries use
+only converged fits with a finite estimate and a finite, positive SE for
+that parameter. \code{n_used} reports their number. The SD is \code{NA} with fewer
+than two usable replications.
 
-Results are descriptive: the function does not apply an RMSE cutoff or
-select a required sample size. RMSE is an average loss, not a bound on an
-individual estimate's error. Interpret it alongside the fitting success
-and convergence rates and allow for simulation variability.
+\code{success} and \code{conv} are proportions of all attempted replications.
+\code{se_failure} is the proportion of converged, successful fits without a
+usable estimate/SE pair, or \code{NA} if none converged. \code{p_bound} is the share
+of usable estimates within 0.01 of a parameter bound. Inspect these rates
+alongside the precision summaries: exclusions can affect the comparison.
+
+Estimates and SEs use the reporting scale. For \code{g} and \code{u}, mirt's logit
+SE is converted by the delta method: \code{p * (1 - p) * SE_logit}. Exact
+probability boundaries have no usable delta-method SE; near a boundary
+the approximation may be unreliable. No bias, RMSE, cutoff or required
+sample size is calculated.
+
+Fits use \code{technical = list(NCYCLES = 2000)} unless supplied in \code{...}.
+SEs are evaluated at each converged fit without further optimisation,
+using the same fitting arguments and mirt's default SE method unless
+\code{SE.type} is supplied. Failed SE calculations do not discard the fit.
 }
 \examples{
 \donttest{

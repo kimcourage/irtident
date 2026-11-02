@@ -154,10 +154,10 @@ ms
 Starts that hit the iteration limit remain in the comparison. Slow convergence
 can accompany weak identification, but is not sufficient evidence of it.
 
-## 4. Parameter recovery across sample sizes
+## 4. Parameter precision across sample sizes
 
 `id_samplesize()` simulates from the fitted model at several sample sizes,
-refits, and reports bias and RMSE for the chosen parameters. These additional
+refits, and compares repeated-estimate SD with the SEs reported by mirt. These additional
 fits can be expensive, so the simulation is separate from `id_diagnose()`:
 
 ```{r samplesize, eval = FALSE}
@@ -168,15 +168,46 @@ ss
 plot(ss)
 ```
 
-The RMSE includes returned estimates from non-converged fits and excludes
-failed fits. `success` is the proportion of fits that returned a model with
-the expected response categories; `conv` is the proportion that converged.
-The function reports recovery across N without an RMSE cutoff, a pass/fail
-label or an automatically selected sample size. A smaller RMSE describes
-better point-estimate recovery under the assumed generating model; it does
-not by itself establish identification. Interpret it alongside fitting
-success and convergence. The 20 replications in this example illustrate the
-procedure and may leave substantial simulation variability.
+For each parameter and N, the summary reports:
+
+| Column | Meaning |
+|---|---|
+| `current` | Estimate from the original fitted model |
+| `mean` | Mean of the repeated estimates |
+| `sd` | SD of the repeated estimates |
+| `mirt_se` | Root mean squared mirt SE, `sqrt(mean(SE^2))` |
+| `n_used` | Replications used for the mean, SD and mirt SE |
+| `success` | Successful fits divided by all attempted fits |
+| `conv` | Converged fits divided by all attempted fits |
+| `se_failure` | Fraction of converged successful fits without a usable estimate/SE pair |
+
+The mean, SD and mirt SE use the same replications: converged fits with a
+finite estimate and a finite, positive SE for that parameter. An SE
+calculation failure does not discard the raw estimate, but excludes that
+replication from these paired summaries. The SD is unavailable with fewer
+than two usable replications; `se_failure` is unavailable if none converged.
+Raw estimates and reporting-scale SEs are retained in `ss$estimates` and
+`ss$standard_errors` with matching N and replication numbers.
+
+`plot(ss)` compares SD and mirt SE across N. Their decline shows how much
+precision a larger sample may provide under the generating model. Differences
+between the two curves suggest that mirt's SEs and the simulated variability
+are not in close agreement. Inspect `n_used`, convergence and SE failure
+alongside the curves: excluding difficult fits can make precision look better.
+The 20 replications in this example illustrate the procedure and may leave
+substantial simulation variability.
+
+For `g` and `u`, both curves use the probability scale. The logit SE from
+mirt is converted with the delta method, `p * (1 - p) * SE_logit`. At exact
+probability boundaries the SE is marked unavailable; near a boundary this
+approximation can still be unreliable. SEs are evaluated at the converged
+estimates without further optimisation, using the same fitting arguments.
+Use `SE.type` to choose a different mirt SE method.
+
+The function does not calculate bias or RMSE, set a precision cutoff, or
+automatically choose a sample size. The `truth` argument retains its name
+for compatibility and specifies the generating model; it defaults to `fit`.
+These results describe that simulation scenario, not known population values.
 
 ## Running in parallel
 

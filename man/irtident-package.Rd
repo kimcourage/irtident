@@ -19,7 +19,7 @@ Main functions:
 information matrix;
 \item \code{\link[=id_profile]{id_profile()}}: profile likelihood intervals and flatness;
 \item \code{\link[=id_multistart]{id_multistart()}}: multi-start estimation with clustering of solutions;
-\item \code{\link[=id_samplesize]{id_samplesize()}}: parameter recovery across simulated sample sizes.
+\item \code{\link[=id_samplesize]{id_samplesize()}}: parameter precision across simulated sample sizes.
 }
 }
 \seealso{
